@@ -7,6 +7,7 @@ from app.llm.base import BaseLLMProvider
 
 class LLMProviderName(StrEnum):
     OPENAI = "openai"
+    OLLAMA = "ollama"
 
 
 class ProviderRegistry:

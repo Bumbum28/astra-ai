@@ -9,10 +9,12 @@ services:
     environment: &backend-environment
       APP_NAME: ${APP_NAME:-Astra AI Platform}
       APP_ENV: ${APP_ENV:-development}
-      APP_VERSION: ${APP_VERSION:-0.2.0}
+      APP_VERSION: ${APP_VERSION:-0.3.0}
       DEBUG: ${DEBUG:-false}
       API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
-      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8080"]}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8080","http://127.0.0.1:8080"]}
+      CORS_ORIGIN_REGEX: ${CORS_ORIGIN_REGEX:-https?://(localhost|127[.]0[.]0[.]1)(:[0-9]+)?}
+      CORS_ALLOW_PRIVATE_NETWORK: ${CORS_ALLOW_PRIVATE_NETWORK:-true}
 
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -40,6 +42,9 @@ services:
       DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-4.1-mini}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_DEFAULT_MODEL: ${OLLAMA_DEFAULT_MODEL:-roleplay-engine}
+      OLLAMA_REQUEST_TIMEOUT_SECONDS: ${OLLAMA_REQUEST_TIMEOUT_SECONDS:-120}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -61,6 +66,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - astra_network
 

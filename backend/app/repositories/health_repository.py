@@ -17,7 +17,7 @@ class DatabaseHealthRepository:
     async def ping(self) -> bool:
         async with self._engine.connect() as connection:
             result = await connection.execute(text("SELECT 1"))
-            return result.scalar_one() == 1
+            return bool(result.scalar_one() == 1)
 
 
 class RedisHealthRepository:
