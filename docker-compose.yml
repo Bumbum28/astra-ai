@@ -1,0 +1,111 @@
+name: astra-ai
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME:-Astra AI Platform}
+      APP_ENV: ${APP_ENV:-development}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      DEBUG: ${DEBUG:-false}
+      API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-astra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-astra_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-astra_ai}
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; prefix=os.getenv('API_V1_PREFIX', '/api/v1').rstrip('/'); urllib.request.urlopen(f'http://127.0.0.1:8000{prefix}/health/live', timeout=3)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - astra_network
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-astra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-astra_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-astra_ai}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-astra} -d ${POSTGRES_DB:-astra_ai}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - astra_network
+
+  redis:
+    image: redis:8-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: >-
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          exec redis-server --appendonly yes --save 60 1000 --requirepass "$$REDIS_PASSWORD";
+        else
+          exec redis-server --appendonly yes --save 60 1000;
+        fi
+      '
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          if [ -n "$$REDIS_PASSWORD" ]; then
+            redis-cli -a "$$REDIS_PASSWORD" ping;
+          else
+            redis-cli ping;
+          fi
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - astra_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  astra_network:
+    driver: bridge
