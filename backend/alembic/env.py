@@ -8,12 +8,6 @@ from alembic import context
 from app.core.config import get_config
 from app.models import DatabaseBase
 from app.models.loader import load_all_models
-from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from app.core.config import get_settings
-from app.models.base import Base
 
 config = context.config
 
@@ -34,7 +28,6 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
@@ -47,10 +40,6 @@ async def run_async_migrations() -> None:
     )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
-
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-
     await connectable.dispose()
 
 
@@ -60,7 +49,6 @@ def do_run_migrations(connection: object) -> None:
         target_metadata=target_metadata,
         compare_type=True,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
