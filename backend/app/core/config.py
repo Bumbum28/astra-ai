@@ -15,10 +15,14 @@ class AppConfig(BaseSettings):
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.2.0", alias="APP_VERSION")
+    app_version: str = Field(default="0.3.0", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")
+    cors_origin_regex: str | None = Field(default=None, alias="CORS_ORIGIN_REGEX")
+    cors_allow_private_network: bool = Field(
+        default=False, alias="CORS_ALLOW_PRIVATE_NETWORK"
+    )
 
     postgres_host: str = Field(default="localhost", alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, alias="POSTGRES_PORT")
@@ -62,6 +66,16 @@ class AppConfig(BaseSettings):
     default_llm_model: str = Field(default="gpt-4.1-mini", alias="DEFAULT_LLM_MODEL")
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
+
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", alias="OLLAMA_BASE_URL"
+    )
+    ollama_default_model: str = Field(
+        default="roleplay-engine", alias="OLLAMA_DEFAULT_MODEL"
+    )
+    ollama_request_timeout_seconds: float = Field(
+        default=120.0, alias="OLLAMA_REQUEST_TIMEOUT_SECONDS", gt=0
+    )
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> "AppConfig":
