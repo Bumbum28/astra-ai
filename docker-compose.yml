@@ -5,23 +5,42 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    environment:
+      target: runtime
+    environment: &backend-environment
       APP_NAME: ${APP_NAME:-Astra AI Platform}
       APP_ENV: ${APP_ENV:-development}
-      APP_VERSION: ${APP_VERSION:-0.1.0}
+      APP_VERSION: ${APP_VERSION:-0.2.0}
       DEBUG: ${DEBUG:-false}
       API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8080"]}
 
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-astra}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-astra_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-astra_ai}
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-10}
+      DATABASE_MAX_OVERFLOW: ${DATABASE_MAX_OVERFLOW:-20}
+      DATABASE_POOL_TIMEOUT: ${DATABASE_POOL_TIMEOUT:-30}
 
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: ${REDIS_DB:-0}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-3}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-development-only-change-this-secret-before-shared-use-123456789}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-30}
+      PASSWORD_BCRYPT_ROUNDS: ${PASSWORD_BCRYPT_ROUNDS:-12}
+      PASSWORD_MIN_LENGTH: ${PASSWORD_MIN_LENGTH:-8}
+
+      DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
+      DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-4.1-mini}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -41,7 +60,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     networks:
       - astra_network
 
@@ -99,6 +118,42 @@ services:
       retries: 10
       start_period: 5s
     restart: unless-stopped
+    networks:
+      - astra_network
+
+  postgres-test:
+    image: postgres:17-alpine
+    profiles: ["test"]
+    environment:
+      POSTGRES_USER: astra_test
+      POSTGRES_PASSWORD: astra_test_password
+      POSTGRES_DB: astra_ai_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U astra_test -d astra_ai_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    networks:
+      - astra_network
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: test
+    profiles: ["test"]
+    environment:
+      <<: *backend-environment
+      APP_ENV: testing
+      DATABASE_URL: postgresql+asyncpg://astra_test:astra_test_password@postgres-test:5432/astra_ai_test
+      REDIS_HOST: redis
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["pytest", "-q"]
     networks:
       - astra_network
 

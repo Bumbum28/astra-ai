@@ -1,15 +1,11 @@
 from redis.asyncio import Redis
 
-from app.core.config import Settings
+from app.core.config import get_config
 
-
-def create_redis_client(settings: Settings) -> Redis:
-    """Create the shared asynchronous Redis client."""
-
-    return Redis.from_url(
-        settings.redis_url,
-        decode_responses=True,
-        socket_connect_timeout=settings.REDIS_SOCKET_TIMEOUT,
-        socket_timeout=settings.REDIS_SOCKET_TIMEOUT,
-        health_check_interval=30,
-    )
+config = get_config()
+redis_client: Redis = Redis.from_url(
+    config.redis_url,
+    encoding="utf-8",
+    decode_responses=True,
+    socket_timeout=config.redis_socket_timeout,
+)
