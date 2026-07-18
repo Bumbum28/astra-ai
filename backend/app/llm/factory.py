@@ -3,6 +3,7 @@ from typing import cast
 
 from app.core.config import AppConfig
 from app.llm.base import BaseLLMProvider
+from app.llm.providers.ollama import OllamaProvider
 from app.llm.providers.openai import OpenAIProvider
 from app.llm.registry import LLMProviderName, ProviderRegistry
 
@@ -10,6 +11,7 @@ from app.llm.registry import LLMProviderName, ProviderRegistry
 def build_default_registry() -> ProviderRegistry:
     registry = ProviderRegistry()
     registry.register(LLMProviderName.OPENAI, OpenAIProvider)
+    registry.register(LLMProviderName.OLLAMA, OllamaProvider)
     return registry
 
 

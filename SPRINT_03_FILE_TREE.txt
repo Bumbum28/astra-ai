@@ -1,0 +1,266 @@
+astra-ai/
+├── .github/
+│   └── workflows/
+│       └── frontend-ci.yml
+├── backend/
+│   ├── alembic/
+│   │   ├── versions/
+│   │   │   ├── .gitkeep
+│   │   │   └── 20260718_0001_platform_foundation.py
+│   │   ├── env.py
+│   │   └── script.py.mako
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── v1/
+│   │   │   │   ├── endpoints/
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   └── health.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── router.py
+│   │   │   ├── __init__.py
+│   │   │   ├── dependencies.py
+│   │   │   └── router.py
+│   │   ├── common/
+│   │   │   ├── constants/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── error_codes.py
+│   │   │   ├── exceptions/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── base.py
+│   │   │   │   └── handlers.py
+│   │   │   ├── responses/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── api_response.py
+│   │   │   └── __init__.py
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   ├── database.py
+│   │   │   ├── lifespan.py
+│   │   │   ├── logging.py
+│   │   │   ├── redis.py
+│   │   │   └── unit_of_work.py
+│   │   ├── domains/
+│   │   │   ├── auth/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── dependencies.py
+│   │   │   │   ├── model.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   ├── security.py
+│   │   │   │   └── service.py
+│   │   │   ├── conversations/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── model.py
+│   │   │   ├── health/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── router.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   └── service.py
+│   │   │   ├── messages/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── model.py
+│   │   │   ├── users/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── model.py
+│   │   │   │   ├── repository.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   └── service.py
+│   │   │   └── __init__.py
+│   │   ├── llm/
+│   │   │   ├── chat/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── service.py
+│   │   │   ├── contracts/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── message.py
+│   │   │   │   ├── model.py
+│   │   │   │   ├── request.py
+│   │   │   │   └── response.py
+│   │   │   ├── providers/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── openai.py
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── factory.py
+│   │   │   ├── registry.py
+│   │   │   └── resolver.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   └── loader.py
+│   │   ├── repositories/
+│   │   │   ├── __init__.py
+│   │   │   └── health_repository.py
+│   │   ├── schemas/
+│   │   │   ├── __init__.py
+│   │   │   └── health.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   └── health_service.py
+│   │   ├── tests/
+│   │   │   ├── integration/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── conftest.py
+│   │   │   │   └── test_auth_api.py
+│   │   │   ├── intergration/
+│   │   │   ├── unit/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── fakes.py
+│   │   │   │   ├── test_auth_service.py
+│   │   │   │   ├── test_llm.py
+│   │   │   │   ├── test_models.py
+│   │   │   │   └── test_security.py
+│   │   │   └── __init__.py
+│   │   ├── utills/
+│   │   │   ├── helpers.py
+│   │   │   └── validators.py
+│   │   ├── utils/
+│   │   │   ├── __init__.py
+│   │   │   ├── helpers.py
+│   │   │   └── validators.py
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── scripts/
+│   │   └── start.sh
+│   ├── .dockerignore
+│   ├── .env.example
+│   ├── alembic.ini
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   ├── requirements-dev.txt
+│   └── requirements.txt
+├── docker/
+├── docs/
+│   ├── architecture/
+│   │   ├── ADR-001-authentication.md
+│   │   ├── ADR-002-llm-provider.md
+│   │   ├── ADR-003-repository-pattern.md
+│   │   ├── ADR-004-flutter-client-architecture.md
+│   │   ├── ADR-005-mobile-token-lifecycle.md
+│   │   └── ADR-006-flutter-platform-bootstrap.md
+│   ├── sprint-01-foundation.md
+│   ├── sprint-02-platform-foundation.md
+│   ├── sprint-03-flutter-foundation.md
+│   ├── SPRINT_02_REVIEW.md
+│   ├── SPRINT_03_CHECKS.md
+│   └── SPRINT_03_REVIEW.md
+├── frontend/
+│   ├── lib/
+│   │   ├── app/
+│   │   │   ├── router/
+│   │   │   │   ├── app_router.dart
+│   │   │   │   ├── route_paths.dart
+│   │   │   │   └── router_refresh_notifier.dart
+│   │   │   └── app.dart
+│   │   ├── core/
+│   │   │   ├── config/
+│   │   │   │   ├── app_config.dart
+│   │   │   │   ├── config_providers.dart
+│   │   │   │   ├── platform_api_base_url.dart
+│   │   │   │   ├── platform_api_base_url_io.dart
+│   │   │   │   └── platform_api_base_url_stub.dart
+│   │   │   ├── errors/
+│   │   │   │   └── app_exception.dart
+│   │   │   ├── network/
+│   │   │   │   ├── api_envelope.dart
+│   │   │   │   ├── auth_interceptor.dart
+│   │   │   │   ├── dio_exception_mapper.dart
+│   │   │   │   ├── network_providers.dart
+│   │   │   │   └── session_event_bus.dart
+│   │   │   ├── storage/
+│   │   │   │   ├── secure_token_store.dart
+│   │   │   │   ├── storage_providers.dart
+│   │   │   │   └── token_store.dart
+│   │   │   ├── theme/
+│   │   │   │   ├── app_theme.dart
+│   │   │   │   └── theme_controller.dart
+│   │   │   └── widgets/
+│   │   │       ├── app_logo.dart
+│   │   │       ├── async_action_button.dart
+│   │   │       └── feature_placeholder.dart
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   │   ├── application/
+│   │   │   │   │   └── auth_controller.dart
+│   │   │   │   ├── data/
+│   │   │   │   │   ├── datasources/
+│   │   │   │   │   │   └── auth_remote_data_source.dart
+│   │   │   │   │   ├── repositories/
+│   │   │   │   │   │   └── auth_repository_impl.dart
+│   │   │   │   │   └── auth_providers.dart
+│   │   │   │   ├── domain/
+│   │   │   │   │   ├── entities/
+│   │   │   │   │   │   ├── auth_session.dart
+│   │   │   │   │   │   ├── auth_tokens.dart
+│   │   │   │   │   │   └── user.dart
+│   │   │   │   │   └── repositories/
+│   │   │   │   │       └── auth_repository.dart
+│   │   │   │   └── presentation/
+│   │   │   │       ├── pages/
+│   │   │   │       │   ├── login_page.dart
+│   │   │   │       │   ├── register_page.dart
+│   │   │   │       │   └── splash_page.dart
+│   │   │   │       ├── widgets/
+│   │   │   │       │   ├── auth_scaffold.dart
+│   │   │   │       │   └── password_field.dart
+│   │   │   │       └── auth_validators.dart
+│   │   │   ├── characters/
+│   │   │   │   └── presentation/
+│   │   │   │       └── characters_placeholder_page.dart
+│   │   │   ├── chat/
+│   │   │   │   └── presentation/
+│   │   │   │       └── chat_placeholder_page.dart
+│   │   │   ├── home/
+│   │   │   │   └── presentation/
+│   │   │   │       └── home_page.dart
+│   │   │   ├── profile/
+│   │   │   │   └── presentation/
+│   │   │   │       └── profile_page.dart
+│   │   │   └── settings/
+│   │   │       └── presentation/
+│   │   │           └── settings_page.dart
+│   │   ├── shared/
+│   │   │   └── layout/
+│   │   │       ├── app_destination.dart
+│   │   │       └── app_shell.dart
+│   │   ├── bootstrap.dart
+│   │   └── main.dart
+│   ├── test/
+│   │   ├── core/
+│   │   │   └── network/
+│   │   │       └── api_envelope_test.dart
+│   │   └── features/
+│   │       └── auth/
+│   │           ├── application/
+│   │           │   └── auth_controller_test.dart
+│   │           └── presentation/
+│   │               └── login_page_test.dart
+│   ├── tool/
+│   │   ├── platform_overrides/
+│   │   │   └── android/
+│   │   │       └── app/
+│   │   │           └── src/
+│   │   │               └── debug/
+│   │   │                   └── AndroidManifest.xml
+│   │   ├── bootstrap.ps1
+│   │   ├── bootstrap.sh
+│   │   ├── check.ps1
+│   │   └── check.sh
+│   ├── .gitignore
+│   ├── analysis_options.yaml
+│   ├── build.yaml
+│   ├── pubspec.yaml
+│   └── README.md
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── README.md
+├── README_SPRINT_2.md
+├── SPRINT_01_FILE_TREE.txt
+├── SPRINT_02_FILE_TREE.txt
+├── SPRINT_02_PATCH_NOTES.md
+├── SPRINT_02_PATCH_NOTES_2.md
+└── SPRINT_03_FILE_TREE.txt

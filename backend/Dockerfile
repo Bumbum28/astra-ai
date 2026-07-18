@@ -31,7 +31,8 @@ COPY --chown=app:app app ./app
 COPY --chown=app:app alembic ./alembic
 COPY --chown=app:app alembic.ini pyproject.toml ./
 COPY --chown=app:app scripts ./scripts
-RUN chmod +x ./scripts/start.sh
+RUN sed -i 's/\r$//' ./scripts/start.sh \
+    && chmod +x ./scripts/start.sh
 
 USER app
 EXPOSE 8000
