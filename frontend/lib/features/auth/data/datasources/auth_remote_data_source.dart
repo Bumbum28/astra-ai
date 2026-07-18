@@ -126,9 +126,7 @@ class AuthRemoteDataSource {
 
       return AuthRemoteResult(
         user: User.fromJson(Map<String, Object?>.from(userData)),
-        tokens: AuthTokens.fromJson(
-          Map<String, Object?>.from(tokenData),
-        ),
+        tokens: AuthTokens.fromJson(Map<String, Object?>.from(tokenData)),
       );
     } on DioException catch (error) {
       throw DioExceptionMapper.map(error);

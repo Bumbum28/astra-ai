@@ -32,10 +32,7 @@ class AuthInterceptor extends Interceptor {
   Future<String?>? _refreshInFlight;
 
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     unawaited(_attachToken(options, handler));
   }
 
