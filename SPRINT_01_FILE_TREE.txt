@@ -1,0 +1,31 @@
+astra-ai/
+├── .env.example
+├── docker-compose.yml
+├── backend/
+│   ├── .dockerignore
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── alembic.ini
+│   ├── alembic/
+│   │   ├── env.py
+│   │   ├── script.py.mako
+│   │   └── versions/.gitkeep
+│   └── app/
+│       ├── main.py
+│       ├── api/
+│       │   ├── dependencies.py
+│       │   ├── router.py
+│       │   └── v1/
+│       │       ├── router.py
+│       │       └── endpoints/health.py
+│       ├── core/
+│       │   ├── config.py
+│       │   ├── database.py
+│       │   ├── lifespan.py
+│       │   └── redis.py
+│       ├── models/base.py
+│       ├── repositories/health_repository.py
+│       ├── schemas/health.py
+│       └── services/health_service.py
+└── docs/sprint-01-foundation.md
