@@ -1,4 +1,7 @@
 import 'package:astra_ai/app/router/route_paths.dart';
+import 'package:astra_ai/features/characters/application/roleplay_catalog_controller.dart';
+import 'package:astra_ai/features/characters/domain/entities/character.dart';
+import 'package:astra_ai/features/characters/domain/entities/persona.dart';
 import 'package:astra_ai/features/chat/application/conversation_list_controller.dart';
 import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
 import 'package:flutter/material.dart';
@@ -108,9 +111,26 @@ class ConversationListPanel extends ConsumerWidget {
   }
 
   Future<void> _createConversation(BuildContext context, WidgetRef ref) async {
+    final catalog = await ref.read(roleplayCatalogControllerProvider.future);
+    if (!context.mounted) {
+      return;
+    }
+    final selection = await showDialog<_ConversationProfileSelection>(
+      context: context,
+      builder: (context) => _NewConversationDialog(
+        characters: catalog.characters,
+        personas: catalog.personas,
+      ),
+    );
+    if (selection == null) {
+      return;
+    }
     final conversation = await ref
         .read(conversationListControllerProvider.notifier)
-        .createConversation();
+        .createConversation(
+          characterId: selection.characterId,
+          personaId: selection.personaId,
+        );
     if (context.mounted) {
       context.go(RoutePaths.chat(conversation.id));
     }
@@ -251,6 +271,102 @@ class _ConversationError extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ConversationProfileSelection {
+  const _ConversationProfileSelection({this.characterId, this.personaId});
+
+  final String? characterId;
+  final String? personaId;
+}
+
+class _NewConversationDialog extends StatefulWidget {
+  const _NewConversationDialog({
+    required this.characters,
+    required this.personas,
+  });
+
+  final List<CharacterProfile> characters;
+  final List<PersonaProfile> personas;
+
+  @override
+  State<_NewConversationDialog> createState() => _NewConversationDialogState();
+}
+
+class _NewConversationDialogState extends State<_NewConversationDialog> {
+  String _characterId = '';
+  String _personaId = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Cuộc trò chuyện mới'),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            DropdownButtonFormField<String>(
+              initialValue: _characterId,
+              decoration: const InputDecoration(
+                labelText: 'Nhân vật',
+                helperText: 'Profile của AI trong cuộc trò chuyện.',
+              ),
+              items: <DropdownMenuItem<String>>[
+                const DropdownMenuItem<String>(
+                  value: '',
+                  child: Text('Không chọn nhân vật'),
+                ),
+                ...widget.characters.map(
+                  (item) => DropdownMenuItem<String>(
+                    value: item.id,
+                    child: Text(item.name),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => _characterId = value ?? ''),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _personaId,
+              decoration: const InputDecoration(
+                labelText: 'Persona của bạn',
+                helperText: 'Danh tính mà nhân vật sẽ dùng để hiểu người dùng.',
+              ),
+              items: <DropdownMenuItem<String>>[
+                const DropdownMenuItem<String>(
+                  value: '',
+                  child: Text('Không chọn persona'),
+                ),
+                ...widget.personas.map(
+                  (item) => DropdownMenuItem<String>(
+                    value: item.id,
+                    child: Text(item.name),
+                  ),
+                ),
+              ],
+              onChanged: (value) => setState(() => _personaId = value ?? ''),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(
+            _ConversationProfileSelection(
+              characterId: _characterId.isEmpty ? null : _characterId,
+              personaId: _personaId.isEmpty ? null : _personaId,
+            ),
+          ),
+          child: const Text('Tạo'),
+        ),
+      ],
     );
   }
 }

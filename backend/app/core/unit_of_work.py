@@ -10,6 +10,12 @@ from app.domains.auth.repository import (
     RefreshSessionRepository,
     SQLAlchemyRefreshSessionRepository,
 )
+from app.domains.characters.repository import (
+    CharacterRepository,
+    CharacterVersionRepository,
+    SQLAlchemyCharacterRepository,
+    SQLAlchemyCharacterVersionRepository,
+)
 from app.domains.conversations.repository import (
     ConversationRepository,
     SQLAlchemyConversationRepository,
@@ -17,6 +23,18 @@ from app.domains.conversations.repository import (
 from app.domains.messages.repository import (
     MessageRepository,
     SQLAlchemyMessageRepository,
+)
+from app.domains.personas.repository import (
+    PersonaRepository,
+    PersonaVersionRepository,
+    SQLAlchemyPersonaRepository,
+    SQLAlchemyPersonaVersionRepository,
+)
+from app.domains.relationships.repository import (
+    RelationshipEventRepository,
+    RelationshipRepository,
+    SQLAlchemyRelationshipEventRepository,
+    SQLAlchemyRelationshipRepository,
 )
 from app.domains.users.repository import SQLAlchemyUserRepository, UserRepository
 
@@ -33,6 +51,24 @@ class UnitOfWork(Protocol):
 
     @property
     def messages(self) -> MessageRepository: ...
+
+    @property
+    def characters(self) -> CharacterRepository: ...
+
+    @property
+    def character_versions(self) -> CharacterVersionRepository: ...
+
+    @property
+    def personas(self) -> PersonaRepository: ...
+
+    @property
+    def persona_versions(self) -> PersonaVersionRepository: ...
+
+    @property
+    def relationships(self) -> RelationshipRepository: ...
+
+    @property
+    def relationship_events(self) -> RelationshipEventRepository: ...
 
     async def __aenter__(self) -> Self: ...
 
@@ -59,6 +95,12 @@ class SQLAlchemyUnitOfWork:
     refresh_sessions: RefreshSessionRepository
     conversations: ConversationRepository
     messages: MessageRepository
+    characters: CharacterRepository
+    character_versions: CharacterVersionRepository
+    personas: PersonaRepository
+    persona_versions: PersonaVersionRepository
+    relationships: RelationshipRepository
+    relationship_events: RelationshipEventRepository
 
     def __init__(
         self,
@@ -73,6 +115,12 @@ class SQLAlchemyUnitOfWork:
         self.refresh_sessions = SQLAlchemyRefreshSessionRepository(self._session)
         self.conversations = SQLAlchemyConversationRepository(self._session)
         self.messages = SQLAlchemyMessageRepository(self._session)
+        self.characters = SQLAlchemyCharacterRepository(self._session)
+        self.character_versions = SQLAlchemyCharacterVersionRepository(self._session)
+        self.personas = SQLAlchemyPersonaRepository(self._session)
+        self.persona_versions = SQLAlchemyPersonaVersionRepository(self._session)
+        self.relationships = SQLAlchemyRelationshipRepository(self._session)
+        self.relationship_events = SQLAlchemyRelationshipEventRepository(self._session)
         return self
 
     async def __aexit__(

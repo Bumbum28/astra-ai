@@ -6,6 +6,10 @@ class Conversation {
     required this.createdAt,
     required this.updatedAt,
     this.title,
+    this.characterId,
+    this.characterVersionId,
+    this.personaId,
+    this.personaVersionId,
     this.systemPrompt,
     this.lastMessageAt,
   });
@@ -14,6 +18,10 @@ class Conversation {
     return Conversation(
       id: json['id']! as String,
       title: json['title'] as String?,
+      characterId: json['character_id'] as String?,
+      characterVersionId: json['character_version_id'] as String?,
+      personaId: json['persona_id'] as String?,
+      personaVersionId: json['persona_version_id'] as String?,
       provider: (json['provider'] as String?) ?? 'ollama',
       model: (json['model'] as String?) ?? 'roleplay-engine',
       systemPrompt: json['system_prompt'] as String?,
@@ -25,6 +33,10 @@ class Conversation {
 
   final String id;
   final String? title;
+  final String? characterId;
+  final String? characterVersionId;
+  final String? personaId;
+  final String? personaVersionId;
   final String provider;
   final String model;
   final String? systemPrompt;
@@ -39,6 +51,10 @@ class Conversation {
     return Conversation(
       id: id,
       title: title ?? this.title,
+      characterId: characterId,
+      characterVersionId: characterVersionId,
+      personaId: personaId,
+      personaVersionId: personaVersionId,
       provider: provider,
       model: model,
       systemPrompt: systemPrompt,

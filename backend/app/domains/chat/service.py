@@ -15,6 +15,7 @@ from app.common.exceptions import (
 )
 from app.core.config import AppConfig
 from app.core.unit_of_work import UnitOfWorkFactory
+from app.domains.chat.language_guard import VietnameseOutputGuard
 from app.domains.chat.schemas import (
     ChatStreamCompleted,
     ChatStreamDelta,
@@ -34,8 +35,21 @@ from app.domains.messages.schemas import (
     MessageResponse,
     MessageSendRequest,
 )
+from app.domains.prompts.composer import StructuredPromptComposer
+from app.domains.prompts.contracts import (
+    PromptComposer,
+    PromptContextResolver,
+    RoleplayPromptContext,
+)
+from app.domains.prompts.service import RoleplayPromptContextResolver
 from app.llm.chat.service import ChatService as LLMChatService
-from app.llm.contracts import LLMChunk, LLMMessage, LLMMessageRole, LLMRequest
+from app.llm.contracts import (
+    LLMChunk,
+    LLMMessage,
+    LLMMessageRole,
+    LLMRequest,
+    LLMResponse,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,10 +74,18 @@ class ChatApplicationService:
         uow_factory: UnitOfWorkFactory,
         llm_service: LLMChatService,
         config: AppConfig,
+        prompt_context_resolver: PromptContextResolver | None = None,
+        prompt_composer: PromptComposer | None = None,
+        language_guard: VietnameseOutputGuard | None = None,
     ) -> None:
         self._uow_factory = uow_factory
         self._llm_service = llm_service
         self._config = config
+        self._prompt_context_resolver = (
+            prompt_context_resolver or RoleplayPromptContextResolver()
+        )
+        self._prompt_composer = prompt_composer or StructuredPromptComposer()
+        self._language_guard = language_guard or VietnameseOutputGuard()
 
     async def send_message(
         self,
@@ -86,10 +108,7 @@ class ChatApplicationService:
             )
 
         try:
-            response = await self._llm_service.generate(
-                prepared.provider,
-                prepared.llm_request,
-            )
+            response = await self._generate_with_language_guard(prepared)
         except asyncio.CancelledError as exc:
             await asyncio.shield(
                 self._finalize_failure(prepared.assistant_message.id, "", exc)
@@ -112,12 +131,87 @@ class ChatApplicationService:
                 "provider": response.provider,
                 "model": response.model,
                 "finish_reason": response.finish_reason,
+                "language_guard_triggered": response.metadata.get(
+                    "language_guard_triggered"
+                ),
+                "language_guard_sanitized": response.metadata.get(
+                    "language_guard_sanitized"
+                ),
             },
         )
         return ChatExchangeResponse(
             user_message=prepared.user_message,
             assistant_message=assistant,
             reused=prepared.reused,
+        )
+
+    async def _generate_with_language_guard(
+        self,
+        prepared: PreparedExchange,
+    ) -> LLMResponse:
+        first_response = await self._llm_service.generate(
+            prepared.provider,
+            prepared.llm_request,
+        )
+        if not self._language_guard.contains_forbidden_script(
+            first_response.content
+        ):
+            return first_response
+
+        strict_retry_instruction = LLMMessage(
+            role=LLMMessageRole.SYSTEM,
+            content=(
+                "The previous generation violated the language policy. Regenerate "
+                "the answer from scratch using Vietnamese only. Preserve the "
+                "current user-writing-style mode already specified in the system "
+                "prompt: use full standard Vietnamese for a standard user message, "
+                "or mirror moderate teencode only when the latest user message uses "
+                "it. Do not output Chinese characters, pinyin, or a translation "
+                "section."
+            ),
+        )
+        retry_request = prepared.llm_request.model_copy(
+            update={
+                "messages": [
+                    strict_retry_instruction,
+                    *prepared.llm_request.messages,
+                ],
+                "temperature": min(
+                    prepared.llm_request.temperature
+                    if prepared.llm_request.temperature is not None
+                    else 0.3,
+                    0.3,
+                ),
+            }
+        )
+        try:
+            retry_response = await self._llm_service.generate(
+                prepared.provider,
+                retry_request,
+            )
+        except Exception:
+            guarded = self._language_guard.sanitize(first_response.content)
+            return first_response.model_copy(
+                update={
+                    "content": guarded.content,
+                    "metadata": {
+                        **first_response.metadata,
+                        "language_guard_triggered": True,
+                        "language_guard_retry_failed": True,
+                    },
+                }
+            )
+
+        guarded = self._language_guard.sanitize(retry_response.content)
+        return retry_response.model_copy(
+            update={
+                "content": guarded.content,
+                "metadata": {
+                    **retry_response.metadata,
+                    "language_guard_triggered": True,
+                    "language_guard_sanitized": guarded.changed,
+                },
+            }
         )
 
     async def start_stream(
@@ -234,6 +328,7 @@ class ChatApplicationService:
                         assistant_message,
                         request,
                         context_messages=[],
+                        prompt_context=RoleplayPromptContext(),
                         needs_generation=False,
                         reused=True,
                     )
@@ -267,12 +362,17 @@ class ChatApplicationService:
                     limit=self._config.chat_context_message_limit,
                 )
             )
+            prompt_context = await self._prompt_context_resolver.resolve(
+                uow,
+                conversation,
+            )
             prepared = self._build_prepared(
                 conversation,
                 user_message,
                 assistant_message,
                 request,
                 context_messages=context_messages,
+                prompt_context=prompt_context,
                 needs_generation=True,
                 reused=reused,
             )
@@ -287,18 +387,16 @@ class ChatApplicationService:
         request: MessageSendRequest,
         *,
         context_messages: list[Message],
+        prompt_context: RoleplayPromptContext,
         needs_generation: bool,
         reused: bool,
     ) -> PreparedExchange:
         provider = conversation.provider or self._config.default_llm_provider
-        messages: list[LLMMessage] = []
-        if conversation.system_prompt:
-            messages.append(
-                LLMMessage(
-                    role=LLMMessageRole.SYSTEM,
-                    content=conversation.system_prompt,
-                )
-            )
+        messages = self._prompt_composer.compose(
+            prompt_context,
+            conversation.system_prompt,
+            user_message.content,
+        )
         messages.extend(
             LLMMessage(
                 role=LLMMessageRole(item.role.value),
@@ -320,14 +418,30 @@ class ChatApplicationService:
                 temperature=(
                     request.temperature
                     if request.temperature is not None
+                    else conversation.temperature
+                    if conversation.temperature is not None
                     else self._config.chat_default_temperature
                 ),
                 max_tokens=(
                     request.max_tokens
                     if request.max_tokens is not None
+                    else conversation.max_tokens
+                    if conversation.max_tokens is not None
                     else self._config.chat_default_max_tokens
                 ),
-                metadata={"conversation_id": str(conversation.id)},
+                metadata={
+                    "conversation_id": str(conversation.id),
+                    "character_id": (
+                        str(conversation.character_id)
+                        if conversation.character_id is not None
+                        else None
+                    ),
+                    "persona_id": (
+                        str(conversation.persona_id)
+                        if conversation.persona_id is not None
+                        else None
+                    ),
+                },
             ),
             user_message=MessageResponse.model_validate(user_message),
             assistant_message=MessageResponse.model_validate(assistant_message),
@@ -353,6 +467,7 @@ class ChatApplicationService:
             return
 
         content_parts: list[str] = []
+        language_guard_triggered = False
         provider_response_id: str | None = None
         finish_reason: str | None = None
         try:
@@ -368,22 +483,40 @@ class ChatApplicationService:
                 finish_reason = chunk.finish_reason or finish_reason
                 if not chunk.content:
                     continue
-                content_parts.append(chunk.content)
+                guarded_chunk = self._language_guard.sanitize_fragment(
+                    chunk.content
+                )
+                language_guard_triggered = (
+                    language_guard_triggered or guarded_chunk.changed
+                )
+                if not guarded_chunk.content:
+                    continue
+                content_parts.append(guarded_chunk.content)
                 delta = ChatStreamDelta(
                     message_id=prepared.assistant_message.id,
-                    delta=chunk.content,
+                    delta=guarded_chunk.content,
+                )
+                yield encode_sse("message.delta", delta.model_dump(mode="json"))
+
+            final_content = "".join(content_parts).strip()
+            if language_guard_triggered and not final_content:
+                final_content = self._language_guard.fallback_message
+                delta = ChatStreamDelta(
+                    message_id=prepared.assistant_message.id,
+                    delta=final_content,
                 )
                 yield encode_sse("message.delta", delta.model_dump(mode="json"))
 
             assistant = await self._finalize_success(
                 prepared.assistant_message.id,
-                "".join(content_parts),
+                final_content,
                 provider_response_id=provider_response_id,
                 token_usage=None,
                 metadata={
                     "provider": prepared.provider,
                     "model": prepared.llm_request.model,
                     "finish_reason": finish_reason,
+                    "language_guard_triggered": language_guard_triggered,
                 },
             )
             completed = ChatStreamCompleted(message=assistant)
@@ -467,6 +600,12 @@ class ChatApplicationService:
             )
             if conversation is not None:
                 conversation.last_message_at = datetime.now(UTC)
+            relationship = await uow.relationships.get_by_conversation(
+                assistant.conversation_id,
+                for_update=True,
+            )
+            if relationship is not None:
+                relationship.turn_count += 1
             await uow.flush()
             response = MessageResponse.model_validate(assistant)
             await uow.commit()

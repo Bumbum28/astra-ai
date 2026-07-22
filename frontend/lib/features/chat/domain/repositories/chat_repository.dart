@@ -8,6 +8,8 @@ abstract interface class ChatRepository {
   Future<Conversation> createConversation({
     String? title,
     String? systemPrompt,
+    String? characterId,
+    String? personaId,
   });
 
   Future<void> archiveConversation(String conversationId);
