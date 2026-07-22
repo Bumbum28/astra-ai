@@ -9,6 +9,10 @@ class ConversationCreateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     provider: str | None = Field(default=None, min_length=1, max_length=50)
     model: str | None = Field(default=None, min_length=1, max_length=150)
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    max_tokens: int | None = Field(default=None, ge=1, le=32768)
+    character_id: UUID | None = None
+    persona_id: UUID | None = None
     system_prompt: str | None = Field(default=None, max_length=20000)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -25,6 +29,10 @@ class ConversationUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     provider: str | None = Field(default=None, min_length=1, max_length=50)
     model: str | None = Field(default=None, min_length=1, max_length=150)
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    max_tokens: int | None = Field(default=None, ge=1, le=32768)
+    character_id: UUID | None = None
+    persona_id: UUID | None = None
     system_prompt: str | None = Field(default=None, max_length=20000)
 
     @field_validator("title", "provider", "model", "system_prompt")
@@ -41,8 +49,14 @@ class ConversationResponse(BaseModel):
 
     id: UUID
     title: str | None
+    character_id: UUID | None
+    character_version_id: UUID | None
+    persona_id: UUID | None
+    persona_version_id: UUID | None
     provider: str | None
     model: str | None
+    temperature: float | None
+    max_tokens: int | None
     system_prompt: str | None
     metadata: dict[str, Any] = Field(
         default_factory=dict,

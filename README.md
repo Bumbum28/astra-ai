@@ -14,6 +14,9 @@ RAG, tool calling, streaming, and multi-device sessions.
   responsive home shell, sidebar, profile, and settings.
 - Sprint 4: persistent conversations, cursor-paginated history, idempotent
   messages, SSE streaming, Markdown rendering, and responsive Flutter Chat.
+- Sprint 5: versioned Characters and Personas, conversation profile snapshots,
+  structured prompt composition, Relationship state/history, and Flutter
+  management screens.
 
 ## Repository
 
@@ -74,4 +77,4 @@ cd frontend
 PowerShell -ExecutionPolicy Bypass -File .\tool\check.ps1
 ```
 
-See `docs/sprint-04-chat-streaming.md` for the Sprint 4 API, migration, and verification guide.
+See `docs/sprint-05-roleplay-profiles.md` for the Sprint 5 API, migration, and verification guide.
