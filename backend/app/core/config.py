@@ -22,7 +22,7 @@ class AppConfig(BaseSettings):
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.5.5", alias="APP_VERSION")
+    app_version: str = Field(default="0.6.0", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")
@@ -150,6 +150,53 @@ class AppConfig(BaseSettings):
         default=1, alias="INTELLIGENCE_MAX_REWRITE_ATTEMPTS", ge=0, le=2
     )
 
+    memory_enabled: bool = Field(default=True, alias="MEMORY_ENABLED")
+    memory_embeddings_enabled: bool = Field(
+        default=True, alias="MEMORY_EMBEDDINGS_ENABLED"
+    )
+    memory_embedding_model: str = Field(
+        default="text-embedding-3-small", alias="MEMORY_EMBEDDING_MODEL"
+    )
+    memory_embedding_dimensions: int = Field(
+        default=1536, alias="MEMORY_EMBEDDING_DIMENSIONS", ge=256, le=3072
+    )
+    memory_extraction_provider: str = Field(
+        default="openai", alias="MEMORY_EXTRACTION_PROVIDER"
+    )
+    memory_extraction_model: str = Field(
+        default="gpt-5.6-luna", alias="MEMORY_EXTRACTION_MODEL"
+    )
+    memory_extraction_reasoning_effort: ReasoningEffortSetting = Field(
+        default="low", alias="MEMORY_EXTRACTION_REASONING_EFFORT"
+    )
+    memory_extraction_max_tokens: int = Field(
+        default=1800, alias="MEMORY_EXTRACTION_MAX_TOKENS", ge=256, le=8192
+    )
+    memory_compaction_message_threshold: int = Field(
+        default=12, alias="MEMORY_COMPACTION_MESSAGE_THRESHOLD", ge=4, le=100
+    )
+    memory_compaction_batch_size: int = Field(
+        default=40, alias="MEMORY_COMPACTION_BATCH_SIZE", ge=4, le=200
+    )
+    memory_retrieval_limit: int = Field(
+        default=8, alias="MEMORY_RETRIEVAL_LIMIT", ge=1, le=30
+    )
+    memory_retrieval_candidate_limit: int = Field(
+        default=200, alias="MEMORY_RETRIEVAL_CANDIDATE_LIMIT", ge=20, le=1000
+    )
+    memory_worker_poll_seconds: float = Field(
+        default=2.0, alias="MEMORY_WORKER_POLL_SECONDS", ge=0.5, le=60
+    )
+    memory_worker_max_attempts: int = Field(
+        default=5, alias="MEMORY_WORKER_MAX_ATTEMPTS", ge=1, le=20
+    )
+    memory_worker_retry_base_seconds: int = Field(
+        default=15, alias="MEMORY_WORKER_RETRY_BASE_SECONDS", ge=1, le=3600
+    )
+    memory_worker_lock_timeout_seconds: int = Field(
+        default=300, alias="MEMORY_WORKER_LOCK_TIMEOUT_SECONDS", ge=30, le=86400
+    )
+
     conversation_page_size_max: int = Field(
         default=100, alias="CONVERSATION_PAGE_SIZE_MAX", ge=10, le=500
     )
@@ -163,6 +210,19 @@ class AppConfig(BaseSettings):
                     "JWT_SECRET_KEY must be a strong, non-development "
                     "secret in production."
                 )
+        if (
+            self.memory_compaction_batch_size
+            < self.memory_compaction_message_threshold
+        ):
+            raise ValueError(
+                "MEMORY_COMPACTION_BATCH_SIZE must be greater than or equal to "
+                "MEMORY_COMPACTION_MESSAGE_THRESHOLD."
+            )
+        if self.memory_retrieval_candidate_limit < self.memory_retrieval_limit:
+            raise ValueError(
+                "MEMORY_RETRIEVAL_CANDIDATE_LIMIT must be greater than or equal "
+                "to MEMORY_RETRIEVAL_LIMIT."
+            )
         return self
 
     @property

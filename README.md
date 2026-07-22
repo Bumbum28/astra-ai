@@ -20,6 +20,9 @@ RAG, tool calling, streaming, and multi-device sessions.
 - Sprint 5.5: OpenAI Responses API, GPT reasoning, structured planning and
   criticism, optional rewrite, a 16K context budget, and a 30-case Vietnamese
   roleplay benchmark.
+- Sprint 6: persistent summaries, scoped long-term memory, hybrid retrieval,
+  durable compaction worker, privacy/language guards, and a Flutter memory
+  inspector.
 
 ## Repository
 
@@ -80,4 +83,6 @@ cd frontend
 PowerShell -ExecutionPolicy Bypass -File .\tool\check.ps1
 ```
 
-See `docs/sprint-05-5-gpt-intelligence.md` for GPT setup, verification, cost controls, and benchmark commands. Test evidence and environment limitations are recorded in `docs/SPRINT_05_5_CHECKS.md`.
+See `docs/sprint-06-memory-system.md` for memory setup, worker verification,
+API details, and rollback. Verification evidence and environment limitations are
+recorded in `docs/SPRINT_06_CHECKS.md`.

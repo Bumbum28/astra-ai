@@ -8,6 +8,7 @@ import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/conversation_list_panel.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/message_bubble.dart';
+import 'package:astra_ai/features/memories/presentation/widgets/memory_inspector_dialog.dart';
 import 'package:astra_ai/features/relationships/data/relationship_providers.dart';
 import 'package:astra_ai/features/relationships/domain/entities/relationship.dart';
 import 'package:astra_ai/features/relationships/presentation/widgets/relationship_editor_dialog.dart';
@@ -198,6 +199,16 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                               onPressed: () => _editRelationship(value),
                             ),
                           ),
+                  ),
+                  IconButton(
+                    tooltip: 'Bộ nhớ hội thoại',
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (context) => MemoryInspectorDialog(
+                        conversationId: widget.conversationId,
+                      ),
+                    ),
+                    icon: const Icon(Icons.psychology_alt_outlined),
                   ),
                   IconButton(
                     tooltip: 'Tải lại tin nhắn',
