@@ -63,6 +63,8 @@ class _FakeChatRepository implements ChatRepository {
   Future<Conversation> createConversation({
     String? title,
     String? systemPrompt,
+    String? characterId,
+    String? personaId,
   }) {
     throw UnimplementedError();
   }

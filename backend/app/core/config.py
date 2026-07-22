@@ -16,7 +16,7 @@ class AppConfig(BaseSettings):
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.4.0", alias="APP_VERSION")
+    app_version: str = Field(default="0.5.0", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")

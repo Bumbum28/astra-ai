@@ -8,6 +8,9 @@ import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/conversation_list_panel.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/message_bubble.dart';
+import 'package:astra_ai/features/relationships/data/relationship_providers.dart';
+import 'package:astra_ai/features/relationships/domain/entities/relationship.dart';
+import 'package:astra_ai/features/relationships/presentation/widgets/relationship_editor_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -99,11 +102,27 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
     });
   }
 
+  Future<void> _editRelationship(RelationshipProfile current) async {
+    final data = await showDialog<Map<String, Object?>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => RelationshipEditorDialog(current: current),
+    );
+    if (data == null) {
+      return;
+    }
+    await ref
+        .read(relationshipRepositoryProvider)
+        .update(widget.conversationId, data);
+    ref.invalidate(relationshipProvider(widget.conversationId));
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = chatControllerProvider(widget.conversationId);
     final chatState = ref.watch(provider);
     final conversations = ref.watch(conversationListControllerProvider);
+    final relationship = ref.watch(relationshipProvider(widget.conversationId));
     final title = _conversationTitle(
       conversations.value?.items ?? const <Conversation>[],
     );
@@ -115,6 +134,9 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
       final isSending = next.value?.isSending ?? false;
       if (nextCount > previousCount || isSending || wasSending != isSending) {
         _scrollToBottom();
+      }
+      if (wasSending && !isSending) {
+        ref.invalidate(relationshipProvider(widget.conversationId));
       }
     });
 
@@ -152,9 +174,39 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                       ],
                     ),
                   ),
+                  relationship.when(
+                    loading: () => const SizedBox.square(
+                      dimension: 28,
+                      child: Padding(
+                        padding: EdgeInsets.all(6),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (error, stackTrace) => const SizedBox.shrink(),
+                    data: (value) => value == null
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: ActionChip(
+                              avatar: const Icon(
+                                Icons.favorite_outline,
+                                size: 18,
+                              ),
+                              label: Text(
+                                '${value.level.toUpperCase()} · ${value.affectionScore}',
+                              ),
+                              onPressed: () => _editRelationship(value),
+                            ),
+                          ),
+                  ),
                   IconButton(
                     tooltip: 'Tải lại tin nhắn',
-                    onPressed: () => ref.invalidate(provider),
+                    onPressed: () {
+                      ref.invalidate(provider);
+                      ref.invalidate(
+                        relationshipProvider(widget.conversationId),
+                      );
+                    },
                     icon: const Icon(Icons.refresh),
                   ),
                 ],

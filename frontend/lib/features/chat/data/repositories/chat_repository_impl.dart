@@ -18,10 +18,14 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<Conversation> createConversation({
     String? title,
     String? systemPrompt,
+    String? characterId,
+    String? personaId,
   }) {
     return _remoteDataSource.createConversation(
       title: title,
       systemPrompt: systemPrompt,
+      characterId: characterId,
+      personaId: personaId,
     );
   }
 

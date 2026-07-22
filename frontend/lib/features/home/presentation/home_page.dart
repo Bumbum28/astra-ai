@@ -30,8 +30,8 @@ class HomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Chat streaming đã sẵn sàng. Character và Memory sẽ được '
-                      'bổ sung ở những Sprint tiếp theo.',
+                      'Character, Persona và Relationship đã sẵn sàng. '
+                      'Memory compaction sẽ được bổ sung ở Sprint riêng.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -73,8 +73,8 @@ class HomePage extends ConsumerWidget {
                       icon: Icons.groups_outlined,
                       title: 'Character System',
                       description:
-                          'Quản lý nhân vật và persona được chuẩn bị '
-                          'cho Sprint 5.',
+                          'Quản lý Character, Persona có version và gắn chúng '
+                          'vào từng cuộc trò chuyện.',
                       actionLabel: 'Xem khu vực nhân vật',
                       onTap: () => context.go(RoutePaths.characters),
                     ),

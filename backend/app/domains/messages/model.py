@@ -1,3 +1,4 @@
+from enum import Enum as PythonEnum
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
@@ -10,6 +11,11 @@ from app.models.base import BaseEntity
 
 if TYPE_CHECKING:
     from app.domains.conversations.model import Conversation
+
+
+def _enum_values(enum_type: type[PythonEnum]) -> list[str]:
+    """Persist enum values instead of Python member names."""
+    return [str(member.value) for member in enum_type]
 
 
 class MessageRole(StrEnum):
@@ -53,15 +59,34 @@ class Message(BaseEntity):
         Uuid, nullable=True, index=True
     )
     role: Mapped[MessageRole] = mapped_column(
-        Enum(MessageRole, native_enum=False, length=20), index=True
+        Enum(
+            MessageRole,
+            native_enum=False,
+            length=20,
+            values_callable=_enum_values,
+            validate_strings=True,
+        ),
+        index=True,
     )
     content: Mapped[str] = mapped_column(Text)
     content_type: Mapped[MessageContentType] = mapped_column(
-        Enum(MessageContentType, native_enum=False, length=20),
+        Enum(
+            MessageContentType,
+            native_enum=False,
+            length=20,
+            values_callable=_enum_values,
+            validate_strings=True,
+        ),
         default=MessageContentType.TEXT,
     )
     status: Mapped[MessageStatus] = mapped_column(
-        Enum(MessageStatus, native_enum=False, length=20),
+        Enum(
+            MessageStatus,
+            native_enum=False,
+            length=20,
+            values_callable=_enum_values,
+            validate_strings=True,
+        ),
         default=MessageStatus.COMPLETED,
         index=True,
     )
