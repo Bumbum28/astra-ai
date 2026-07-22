@@ -27,25 +27,22 @@ void main() {
     expect(state.isSending, isFalse);
   });
 
-  test(
-    'marks a streaming assistant failed when the transport closes early',
-    () async {
-      final repository = _FakeChatRepository(completeStream: false);
-      final container = ProviderContainer(
-        overrides: [chatRepositoryProvider.overrideWithValue(repository)],
-      );
-      addTearDown(container.dispose);
-      final provider = chatControllerProvider('conversation-1');
+  test('marks a streaming assistant failed when the transport closes early', () async {
+    final repository = _FakeChatRepository(completeStream: false);
+    final container = ProviderContainer(
+      overrides: [chatRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final provider = chatControllerProvider('conversation-1');
 
-      await container.read(provider.future);
-      await container.read(provider.notifier).send('Xin chào');
+    await container.read(provider.future);
+    await container.read(provider.notifier).send('Xin chào');
 
-      final state = container.read(provider).requireValue;
-      expect(state.messages.last.status, ChatMessageStatus.failed);
-      expect(state.streamError?.code, 'CHAT_STREAM_INCOMPLETE');
-      expect(state.isSending, isFalse);
-    },
-  );
+    final state = container.read(provider).requireValue;
+    expect(state.messages.last.status, ChatMessageStatus.failed);
+    expect(state.streamError?.code, 'CHAT_STREAM_INCOMPLETE');
+    expect(state.isSending, isFalse);
+  });
 }
 
 class _FakeChatRepository implements ChatRepository {
@@ -111,8 +108,14 @@ class _FakeChatRepository implements ChatRepository {
       assistantMessage: assistant,
       reused: false,
     );
-    yield const ChatStreamDeltaEvent(messageId: 'assistant-1', delta: 'Chào ');
-    yield const ChatStreamDeltaEvent(messageId: 'assistant-1', delta: 'bạn!');
+    yield const ChatStreamDeltaEvent(
+      messageId: 'assistant-1',
+      delta: 'Chào ',
+    );
+    yield const ChatStreamDeltaEvent(
+      messageId: 'assistant-1',
+      delta: 'bạn!',
+    );
     if (!completeStream) {
       return;
     }

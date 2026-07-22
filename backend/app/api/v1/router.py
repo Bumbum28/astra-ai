@@ -5,6 +5,7 @@ from app.domains.chat.router import router as chat_router
 from app.domains.characters.router import router as characters_router
 from app.domains.conversations.router import router as conversations_router
 from app.domains.health.router import router as health_router
+from app.domains.memories.router import router as memories_router
 from app.domains.personas.router import router as personas_router
 from app.domains.relationships.router import router as relationships_router
 
@@ -16,3 +17,4 @@ router.include_router(personas_router)
 router.include_router(conversations_router)
 router.include_router(chat_router)
 router.include_router(relationships_router)
+router.include_router(memories_router)

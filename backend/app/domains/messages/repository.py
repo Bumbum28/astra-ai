@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.messages.model import Message, MessageRole, MessageStatus
@@ -46,6 +46,16 @@ class MessageRepository(Protocol):
         *,
         limit: int,
     ) -> Sequence[Message]: ...
+
+    async def list_completed_after(
+        self,
+        conversation_id: UUID,
+        *,
+        after: CursorPosition | None,
+        limit: int,
+    ) -> Sequence[Message]: ...
+
+    async def count_completed(self, conversation_id: UUID) -> int: ...
 
 
 class SQLAlchemyMessageRepository:
@@ -138,3 +148,41 @@ class SQLAlchemyMessageRepository:
         items = list(result.scalars().all())
         items.reverse()
         return items
+
+    async def list_completed_after(
+        self,
+        conversation_id: UUID,
+        *,
+        after: CursorPosition | None,
+        limit: int,
+    ) -> Sequence[Message]:
+        statement = select(Message).where(
+            Message.conversation_id == conversation_id,
+            Message.status == MessageStatus.COMPLETED,
+            Message.role.in_([MessageRole.USER, MessageRole.ASSISTANT]),
+        )
+        if after is not None:
+            statement = statement.where(
+                or_(
+                    Message.created_at > after.timestamp,
+                    and_(
+                        Message.created_at == after.timestamp,
+                        Message.id > after.entity_id,
+                    ),
+                )
+            )
+        result = await self._session.execute(
+            statement.order_by(Message.created_at, Message.id).limit(limit)
+        )
+        return result.scalars().all()
+
+    async def count_completed(self, conversation_id: UUID) -> int:
+        result = await self._session.execute(
+            select(func.count(Message.id)).where(
+                Message.conversation_id == conversation_id,
+                Message.status == MessageStatus.COMPLETED,
+                Message.role.in_([MessageRole.USER, MessageRole.ASSISTANT]),
+            )
+        )
+        return int(result.scalar_one())
+

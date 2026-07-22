@@ -43,7 +43,10 @@ class ConversationListController extends AsyncNotifier<ConversationListState> {
   }) async {
     final conversation = await ref
         .read(chatRepositoryProvider)
-        .createConversation(characterId: characterId, personaId: personaId);
+        .createConversation(
+          characterId: characterId,
+          personaId: personaId,
+        );
     final current = state.value;
     if (current != null) {
       state = AsyncData(

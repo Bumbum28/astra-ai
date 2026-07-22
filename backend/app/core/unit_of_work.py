@@ -24,6 +24,14 @@ from app.domains.messages.repository import (
     MessageRepository,
     SQLAlchemyMessageRepository,
 )
+from app.domains.memories.repository import (
+    ConversationSummaryRepository,
+    MemoryRepository,
+    MemoryTaskRepository,
+    SQLAlchemyConversationSummaryRepository,
+    SQLAlchemyMemoryRepository,
+    SQLAlchemyMemoryTaskRepository,
+)
 from app.domains.personas.repository import (
     PersonaRepository,
     PersonaVersionRepository,
@@ -51,6 +59,15 @@ class UnitOfWork(Protocol):
 
     @property
     def messages(self) -> MessageRepository: ...
+
+    @property
+    def memories(self) -> MemoryRepository: ...
+
+    @property
+    def conversation_summaries(self) -> ConversationSummaryRepository: ...
+
+    @property
+    def memory_tasks(self) -> MemoryTaskRepository: ...
 
     @property
     def characters(self) -> CharacterRepository: ...
@@ -95,6 +112,9 @@ class SQLAlchemyUnitOfWork:
     refresh_sessions: RefreshSessionRepository
     conversations: ConversationRepository
     messages: MessageRepository
+    memories: MemoryRepository
+    conversation_summaries: ConversationSummaryRepository
+    memory_tasks: MemoryTaskRepository
     characters: CharacterRepository
     character_versions: CharacterVersionRepository
     personas: PersonaRepository
@@ -115,6 +135,11 @@ class SQLAlchemyUnitOfWork:
         self.refresh_sessions = SQLAlchemyRefreshSessionRepository(self._session)
         self.conversations = SQLAlchemyConversationRepository(self._session)
         self.messages = SQLAlchemyMessageRepository(self._session)
+        self.memories = SQLAlchemyMemoryRepository(self._session)
+        self.conversation_summaries = SQLAlchemyConversationSummaryRepository(
+            self._session
+        )
+        self.memory_tasks = SQLAlchemyMemoryTaskRepository(self._session)
         self.characters = SQLAlchemyCharacterRepository(self._session)
         self.character_versions = SQLAlchemyCharacterVersionRepository(self._session)
         self.personas = SQLAlchemyPersonaRepository(self._session)

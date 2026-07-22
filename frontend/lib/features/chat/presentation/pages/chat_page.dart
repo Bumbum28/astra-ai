@@ -8,6 +8,7 @@ import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/chat_composer.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/conversation_list_panel.dart';
 import 'package:astra_ai/features/chat/presentation/widgets/message_bubble.dart';
+import 'package:astra_ai/features/memories/presentation/widgets/memory_inspector_dialog.dart';
 import 'package:astra_ai/features/relationships/data/relationship_providers.dart';
 import 'package:astra_ai/features/relationships/domain/entities/relationship.dart';
 import 'package:astra_ai/features/relationships/presentation/widgets/relationship_editor_dialog.dart';
@@ -188,10 +189,7 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                         : Padding(
                             padding: const EdgeInsets.only(right: 4),
                             child: ActionChip(
-                              avatar: const Icon(
-                                Icons.favorite_outline,
-                                size: 18,
-                              ),
+                              avatar: const Icon(Icons.favorite_outline, size: 18),
                               label: Text(
                                 '${value.level.toUpperCase()} · ${value.affectionScore}',
                               ),
@@ -200,12 +198,20 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                           ),
                   ),
                   IconButton(
+                    tooltip: 'Bộ nhớ hội thoại',
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (context) => MemoryInspectorDialog(
+                        conversationId: widget.conversationId,
+                      ),
+                    ),
+                    icon: const Icon(Icons.psychology_alt_outlined),
+                  ),
+                  IconButton(
                     tooltip: 'Tải lại tin nhắn',
                     onPressed: () {
                       ref.invalidate(provider);
-                      ref.invalidate(
-                        relationshipProvider(widget.conversationId),
-                      );
+                      ref.invalidate(relationshipProvider(widget.conversationId));
                     },
                     icon: const Icon(Icons.refresh),
                   ),

@@ -62,8 +62,7 @@ class _RelationshipEditorDialogState extends State<RelationshipEditorDialog> {
                       child: Text('L$index'),
                     ),
                   ),
-                  onChanged: (value) =>
-                      setState(() => _level = value ?? _level),
+                  onChanged: (value) => setState(() => _level = value ?? _level),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -89,9 +88,7 @@ class _RelationshipEditorDialogState extends State<RelationshipEditorDialog> {
                 TextFormField(
                   controller: _context,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Ngữ cảnh quan hệ',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Ngữ cảnh quan hệ'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
