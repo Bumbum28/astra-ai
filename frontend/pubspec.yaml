@@ -1,7 +1,7 @@
 name: astra_ai
 description: Production-ready Flutter client for the Astra AI Platform.
 publish_to: "none"
-version: 0.3.0+1
+version: 0.4.0+1
 
 environment:
   sdk: ">=3.8.0 <4.0.0"
@@ -12,10 +12,12 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.10.0
   flutter_riverpod: ^3.3.2
+  flutter_markdown_plus: ^1.0.12
   flutter_secure_storage: ^10.3.1
   freezed_annotation: ^3.1.0
   go_router: ^17.3.0
   json_annotation: ^4.12.0
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

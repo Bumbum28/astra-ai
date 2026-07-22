@@ -30,8 +30,8 @@ class HomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Nền tảng đã sẵn sàng cho các tính năng Chat, '
-                      'Character và Memory ở những Sprint tiếp theo.',
+                      'Chat streaming đã sẵn sàng. Character và Memory sẽ được '
+                      'bổ sung ở những Sprint tiếp theo.',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -64,8 +64,8 @@ class HomePage extends ConsumerWidget {
                       icon: Icons.chat_bubble_outline,
                       title: 'AI Chat',
                       description:
-                          'Streaming conversation sẽ được triển khai '
-                          'trong Sprint 4.',
+                          'Tạo hội thoại, lưu lịch sử và nhận phản hồi '
+                          'streaming từ nhiều LLM.',
                       actionLabel: 'Mở khu vực Chat',
                       onTap: () => context.go(RoutePaths.chats),
                     ),

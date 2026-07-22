@@ -2,7 +2,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, String, Text, text
+from sqlalchemy import Enum, ForeignKey, Index, String, Text, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -33,9 +33,24 @@ class MessageStatus(StrEnum):
 
 class Message(BaseEntity):
     __tablename__ = "messages"
+    __table_args__ = (
+        Index(
+            "uq_messages_conversation_client_message_id",
+            "conversation_id",
+            "client_message_id",
+            unique=True,
+            postgresql_where=text("client_message_id IS NOT NULL"),
+        ),
+    )
 
     conversation_id: Mapped[UUID] = mapped_column(
         ForeignKey("conversations.id", ondelete="CASCADE"), index=True
+    )
+    parent_message_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("messages.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    client_message_id: Mapped[UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True
     )
     role: Mapped[MessageRole] = mapped_column(
         Enum(MessageRole, native_enum=False, length=20), index=True
@@ -59,3 +74,6 @@ class Message(BaseEntity):
     )
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
+    parent: Mapped["Message | None"] = relationship(
+        remote_side="Message.id", foreign_keys=[parent_message_id]
+    )
