@@ -189,7 +189,10 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                         : Padding(
                             padding: const EdgeInsets.only(right: 4),
                             child: ActionChip(
-                              avatar: const Icon(Icons.favorite_outline, size: 18),
+                              avatar: const Icon(
+                                Icons.favorite_outline,
+                                size: 18,
+                              ),
                               label: Text(
                                 '${value.level.toUpperCase()} · ${value.affectionScore}',
                               ),
@@ -211,7 +214,9 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                     tooltip: 'Tải lại tin nhắn',
                     onPressed: () {
                       ref.invalidate(provider);
-                      ref.invalidate(relationshipProvider(widget.conversationId));
+                      ref.invalidate(
+                        relationshipProvider(widget.conversationId),
+                      );
                     },
                     icon: const Icon(Icons.refresh),
                   ),
