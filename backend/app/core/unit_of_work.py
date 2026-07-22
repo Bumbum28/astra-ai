@@ -10,6 +10,14 @@ from app.domains.auth.repository import (
     RefreshSessionRepository,
     SQLAlchemyRefreshSessionRepository,
 )
+from app.domains.conversations.repository import (
+    ConversationRepository,
+    SQLAlchemyConversationRepository,
+)
+from app.domains.messages.repository import (
+    MessageRepository,
+    SQLAlchemyMessageRepository,
+)
 from app.domains.users.repository import SQLAlchemyUserRepository, UserRepository
 
 
@@ -19,6 +27,12 @@ class UnitOfWork(Protocol):
 
     @property
     def refresh_sessions(self) -> RefreshSessionRepository: ...
+
+    @property
+    def conversations(self) -> ConversationRepository: ...
+
+    @property
+    def messages(self) -> MessageRepository: ...
 
     async def __aenter__(self) -> Self: ...
 
@@ -43,6 +57,8 @@ class UnitOfWorkFactory(Protocol):
 class SQLAlchemyUnitOfWork:
     users: UserRepository
     refresh_sessions: RefreshSessionRepository
+    conversations: ConversationRepository
+    messages: MessageRepository
 
     def __init__(
         self,
@@ -55,6 +71,8 @@ class SQLAlchemyUnitOfWork:
         self._session = self._session_factory()
         self.users = SQLAlchemyUserRepository(self._session)
         self.refresh_sessions = SQLAlchemyRefreshSessionRepository(self._session)
+        self.conversations = SQLAlchemyConversationRepository(self._session)
+        self.messages = SQLAlchemyMessageRepository(self._session)
         return self
 
     async def __aexit__(

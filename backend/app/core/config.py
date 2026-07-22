@@ -10,12 +10,13 @@ class AppConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        populate_by_name=True,
         extra="ignore",
     )
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.3.0", alias="APP_VERSION")
+    app_version: str = Field(default="0.4.0", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")
@@ -75,6 +76,25 @@ class AppConfig(BaseSettings):
     )
     ollama_request_timeout_seconds: float = Field(
         default=120.0, alias="OLLAMA_REQUEST_TIMEOUT_SECONDS", gt=0
+    )
+
+    chat_context_message_limit: int = Field(
+        default=50, alias="CHAT_CONTEXT_MESSAGE_LIMIT", ge=1, le=500
+    )
+    chat_max_message_length: int = Field(
+        default=12000, alias="CHAT_MAX_MESSAGE_LENGTH", ge=256, le=100000
+    )
+    chat_default_temperature: float = Field(
+        default=0.8, alias="CHAT_DEFAULT_TEMPERATURE", ge=0, le=2
+    )
+    chat_default_max_tokens: int = Field(
+        default=2048, alias="CHAT_DEFAULT_MAX_TOKENS", ge=1, le=32768
+    )
+    chat_stream_heartbeat_seconds: float = Field(
+        default=15.0, alias="CHAT_STREAM_HEARTBEAT_SECONDS", ge=1, le=60
+    )
+    conversation_page_size_max: int = Field(
+        default=100, alias="CONVERSATION_PAGE_SIZE_MAX", ge=10, le=500
     )
 
     @model_validator(mode="after")
