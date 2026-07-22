@@ -13,10 +13,7 @@ class RoleplayCatalogRemoteDataSource {
   final AppConfig _config;
 
   Future<List<CharacterProfile>> listCharacters() async {
-    return _list(
-      'characters',
-      CharacterProfile.fromJson,
-    );
+    return _list('characters', CharacterProfile.fromJson);
   }
 
   Future<CharacterProfile> createCharacter(Map<String, Object?> data) async {
@@ -77,9 +74,7 @@ class RoleplayCatalogRemoteDataSource {
       if (rawItems is! List) {
         throw const FormatException('Missing catalog items.');
       }
-      return rawItems
-          .map((item) => parser(_map(item)))
-          .toList(growable: false);
+      return rawItems.map((item) => parser(_map(item))).toList(growable: false);
     } on DioException catch (error) {
       throw DioExceptionMapper.map(error);
     } on FormatException catch (error) {
