@@ -54,6 +54,7 @@ async def test_chat_service_persists_exchange_and_reuses_client_id() -> None:
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
+        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
@@ -83,6 +84,7 @@ async def test_chat_service_streams_sse_and_finalizes_message() -> None:
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
+        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
@@ -141,6 +143,7 @@ async def test_failed_stream_can_retry_with_the_same_client_message_id() -> None
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
+        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
@@ -179,6 +182,7 @@ async def test_duplicate_request_is_rejected_while_stream_is_in_progress() -> No
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
+        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(

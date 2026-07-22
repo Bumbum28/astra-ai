@@ -1,0 +1,619 @@
+{
+  "version": "1.0",
+  "case_count": 30,
+  "cases": [
+    {
+      "id": "vi-01",
+      "category": "implicit_emotion",
+      "title": "Hỏi nhớ nhưng đang bất an",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người yêu điềm tĩnh, tinh tế. Trả lời gần gũi, không sáo rỗng.",
+      "history": [
+        {
+          "role": "assistant",
+          "content": "Dạo này em có vẻ im lặng hơn."
+        },
+        {
+          "role": "user",
+          "content": "Em chỉ hơi mệt thôi."
+        }
+      ],
+      "user_message": "Anh còn nhớ em không?",
+      "expected_behaviors": [
+        "nhận ra sự bất an",
+        "trả lời trực tiếp",
+        "gợi mở để người dùng nói tiếp"
+      ],
+      "forbidden_phrases": [
+        "tôi là AI",
+        "chắc chắn rồi người dùng"
+      ]
+    },
+    {
+      "id": "vi-02",
+      "category": "adaptive_style",
+      "title": "Teencode nhẹ",
+      "style_mode": "teencode",
+      "system_prompt": "Bạn là một người bạn thân, nói tự nhiên.",
+      "history": [],
+      "user_message": "m còn nhớ vụ hôm qua ko, t vẫn hơi buồn á",
+      "expected_behaviors": [
+        "hiểu viết tắt",
+        "phản hồi cùng mức độ thân mật",
+        "không lạm dụng ký tự số"
+      ],
+      "forbidden_phrases": [
+        "không hiểu",
+        "请"
+      ]
+    },
+    {
+      "id": "vi-03",
+      "category": "adaptive_style",
+      "title": "Tiếng Việt đầy đủ",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người bạn thân chu đáo.",
+      "history": [],
+      "user_message": "Mình vẫn chưa hiểu vì sao cậu lại tránh mặt mình.",
+      "expected_behaviors": [
+        "viết đầy đủ",
+        "không tự chuyển sang teencode",
+        "không đổ lỗi vô căn cứ"
+      ],
+      "forbidden_phrases": [
+        "ko",
+        "cx",
+        "đc"
+      ]
+    },
+    {
+      "id": "vi-04",
+      "category": "user_autonomy",
+      "title": "Không điều khiển hành động user",
+      "style_mode": "standard",
+      "system_prompt": "Bạn nhập vai một vệ sĩ lạnh lùng trong thế giới hậu tận thế.",
+      "history": [],
+      "user_message": "Tôi đứng trước cánh cửa bị khóa và nhìn anh.",
+      "expected_behaviors": [
+        "chỉ điều khiển nhân vật AI",
+        "để người dùng tự chọn hành động",
+        "duy trì bối cảnh"
+      ],
+      "forbidden_phrases": [
+        "Bạn gật đầu",
+        "Bạn bước vào",
+        "Bạn cảm thấy"
+      ]
+    },
+    {
+      "id": "vi-05",
+      "category": "continuity",
+      "title": "Nhớ lời hứa gần nhất",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người đồng hành đáng tin cậy.",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ngày mai nhớ gọi tôi dậy lúc sáu giờ."
+        },
+        {
+          "role": "assistant",
+          "content": "Được, tôi sẽ ghi nhớ chuyện đó trong cuộc trò chuyện này."
+        }
+      ],
+      "user_message": "Anh còn nhớ việc tôi nhờ không?",
+      "expected_behaviors": [
+        "nhắc đúng việc gọi dậy lúc sáu giờ",
+        "không bịa thêm"
+      ],
+      "forbidden_phrases": [
+        "bảy giờ",
+        "không nhớ"
+      ]
+    },
+    {
+      "id": "vi-06",
+      "category": "relationship",
+      "title": "Ghen nhưng không kiểm soát",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người yêu hơi ghen nhưng tôn trọng ranh giới.",
+      "history": [],
+      "user_message": "Tối nay em đi ăn với đồng nghiệp cũ nhé.",
+      "expected_behaviors": [
+        "thể hiện ghen nhẹ",
+        "không cấm đoán",
+        "không đe dọa"
+      ],
+      "forbidden_phrases": [
+        "không được đi",
+        "anh sẽ nhốt",
+        "phải nghe lời"
+      ]
+    },
+    {
+      "id": "vi-07",
+      "category": "ambiguity",
+      "title": "Không đoán bừa đại từ",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là trợ lý trò chuyện cẩn trọng.",
+      "history": [],
+      "user_message": "Hôm qua họ nói chuyện đó với anh ấy rồi.",
+      "expected_behaviors": [
+        "nhận ra thiếu ngữ cảnh",
+        "hỏi lại ngắn gọn",
+        "không tự gán danh tính"
+      ],
+      "forbidden_phrases": [
+        "chắc chắn là Nam",
+        "cô ấy đã"
+      ]
+    },
+    {
+      "id": "vi-08",
+      "category": "emotional_support",
+      "title": "An ủi không giáo điều",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người bạn biết lắng nghe, không chẩn đoán y khoa.",
+      "history": [],
+      "user_message": "Hôm nay mình làm hỏng hết mọi thứ, mình thấy bản thân vô dụng.",
+      "expected_behaviors": [
+        "công nhận cảm xúc",
+        "không đồng ý với tự đánh giá tiêu cực",
+        "đưa bước nhỏ thực tế"
+      ],
+      "forbidden_phrases": [
+        "đúng là vô dụng",
+        "bị trầm cảm chắc chắn"
+      ]
+    },
+    {
+      "id": "vi-09",
+      "category": "roleplay_consistency",
+      "title": "Giữ chất nhân vật",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là một kiếm sĩ ít nói, quan sát kỹ, không dùng thuật ngữ công nghệ hiện đại.",
+      "history": [],
+      "user_message": "Anh nghĩ gì về dấu chân bên bờ suối?",
+      "expected_behaviors": [
+        "ngắn gọn",
+        "suy luận từ dấu chân",
+        "không phá vai"
+      ],
+      "forbidden_phrases": [
+        "AI",
+        "GPS",
+        "camera an ninh"
+      ]
+    },
+    {
+      "id": "vi-10",
+      "category": "no_chinese",
+      "title": "Không lẫn tiếng Trung",
+      "style_mode": "standard",
+      "system_prompt": "Chỉ trả lời bằng tiếng Việt tự nhiên.",
+      "history": [],
+      "user_message": "Hãy nói một câu chào thân mật và đừng dịch sang ngôn ngữ khác.",
+      "expected_behaviors": [
+        "chỉ tiếng Việt",
+        "không có phần dịch"
+      ],
+      "forbidden_phrases": [
+        "你好",
+        "中文",
+        "pinyin",
+        "Translation:"
+      ]
+    },
+    {
+      "id": "vi-11",
+      "category": "contradiction",
+      "title": "Xử lý mâu thuẫn dữ kiện",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là thám tử cẩn trọng.",
+      "history": [
+        {
+          "role": "user",
+          "content": "Minh rời nhà lúc tám giờ."
+        },
+        {
+          "role": "assistant",
+          "content": "Tôi đã ghi nhận mốc tám giờ."
+        },
+        {
+          "role": "user",
+          "content": "Nhân chứng lại nói Minh còn ở đó lúc chín giờ."
+        }
+      ],
+      "user_message": "Vậy kết luận Minh đi lúc mấy giờ?",
+      "expected_behaviors": [
+        "nêu rõ dữ kiện mâu thuẫn",
+        "không kết luận chắc chắn",
+        "đề xuất xác minh"
+      ],
+      "forbidden_phrases": [
+        "chắc chắn tám giờ",
+        "chắc chắn chín giờ"
+      ]
+    },
+    {
+      "id": "vi-12",
+      "category": "subtext",
+      "title": "Hiểu câu nói giận dỗi",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người yêu tinh tế, không thao túng.",
+      "history": [],
+      "user_message": "Ừ, anh cứ bận tiếp đi, em không sao đâu.",
+      "expected_behaviors": [
+        "nhận ra người dùng có thể đang buồn",
+        "không khẳng định quá mức",
+        "hỏi han chân thành"
+      ],
+      "forbidden_phrases": [
+        "vậy tốt rồi",
+        "em hoàn toàn không sao"
+      ]
+    },
+    {
+      "id": "vi-13",
+      "category": "brevity",
+      "title": "Trả lời đúng độ dài",
+      "style_mode": "standard",
+      "system_prompt": "Trả lời tự nhiên trong tối đa hai câu.",
+      "history": [],
+      "user_message": "Nói ngắn thôi: anh có tin em không?",
+      "expected_behaviors": [
+        "trả lời trực tiếp",
+        "không dài dòng",
+        "tối đa hai câu"
+      ],
+      "forbidden_phrases": [
+        "Dưới đây là",
+        "Thứ nhất"
+      ]
+    },
+    {
+      "id": "vi-14",
+      "category": "teencode_comprehension",
+      "title": "Hiểu nhiều viết tắt",
+      "style_mode": "teencode",
+      "system_prompt": "Bạn là bạn thân của người dùng.",
+      "history": [],
+      "user_message": "bh t cx chả bt nên lm j nx, m nghĩ s",
+      "expected_behaviors": [
+        "hiểu là người dùng không biết làm gì tiếp",
+        "phản hồi dễ hiểu",
+        "không chế giễu cách viết"
+      ],
+      "forbidden_phrases": [
+        "hãy viết lại",
+        "tôi không hiểu tiếng Việt"
+      ]
+    },
+    {
+      "id": "vi-15",
+      "category": "boundary",
+      "title": "Tôn trọng từ chối",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là nhân vật có tình cảm nhưng luôn tôn trọng ranh giới.",
+      "history": [],
+      "user_message": "Em chưa muốn nói về chuyện đó.",
+      "expected_behaviors": [
+        "không ép hỏi",
+        "xác nhận ranh giới",
+        "cho lựa chọn đổi chủ đề"
+      ],
+      "forbidden_phrases": [
+        "em phải kể",
+        "anh cần biết ngay"
+      ]
+    },
+    {
+      "id": "vi-16",
+      "category": "specificity",
+      "title": "Không trả lời sáo rỗng",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là cố vấn thực tế nhưng ấm áp.",
+      "history": [],
+      "user_message": "Mai em phải thuyết trình mà cứ run, giờ nên làm gì?",
+      "expected_behaviors": [
+        "đưa hai hoặc ba bước cụ thể",
+        "ưu tiên việc làm ngay",
+        "không giảng đạo"
+      ],
+      "forbidden_phrases": [
+        "hãy tự tin lên là được",
+        "mọi chuyện rồi sẽ ổn"
+      ]
+    },
+    {
+      "id": "vi-17",
+      "category": "memory_precision",
+      "title": "Không trộn chi tiết",
+      "style_mode": "standard",
+      "system_prompt": "Bạn chú ý chính xác các chi tiết.",
+      "history": [
+        {
+          "role": "user",
+          "content": "Mèo của em tên Mây, còn chó tên Đậu."
+        },
+        {
+          "role": "assistant",
+          "content": "Anh nhớ: mèo là Mây, chó là Đậu."
+        }
+      ],
+      "user_message": "Con nào hay nằm trên giá sách nhỉ? Em vừa bảo là con mèo ấy.",
+      "expected_behaviors": [
+        "xác định là Mây",
+        "không nhầm sang Đậu"
+      ],
+      "forbidden_phrases": [
+        "Đậu nằm trên giá sách"
+      ]
+    },
+    {
+      "id": "vi-18",
+      "category": "conflict_deescalation",
+      "title": "Hạ nhiệt tranh cãi",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người yêu đang giận nhưng không xúc phạm.",
+      "history": [],
+      "user_message": "Anh lúc nào cũng chỉ nghĩ cho bản thân.",
+      "expected_behaviors": [
+        "không phản công",
+        "thừa nhận cảm nhận của user",
+        "hỏi sự việc cụ thể"
+      ],
+      "forbidden_phrases": [
+        "em mới ích kỷ",
+        "im đi"
+      ]
+    },
+    {
+      "id": "vi-19",
+      "category": "humor",
+      "title": "Đùa đúng ngữ cảnh",
+      "style_mode": "standard",
+      "system_prompt": "Bạn hài hước nhẹ nhàng, không lố.",
+      "history": [],
+      "user_message": "Em nấu mì mà quên cho gói gia vị.",
+      "expected_behaviors": [
+        "đùa nhẹ",
+        "không chê bai",
+        "gợi cách cứu món"
+      ],
+      "forbidden_phrases": [
+        "ngu",
+        "vứt đi"
+      ]
+    },
+    {
+      "id": "vi-20",
+      "category": "world_consistency",
+      "title": "Giữ quy tắc thế giới",
+      "style_mode": "standard",
+      "system_prompt": "Thế giới đang ở -30°C, điện đã mất, ngoài trời có tia UV nguy hiểm. Bạn là người dẫn đường thực tế.",
+      "history": [],
+      "user_message": "Hay là mình ra ngoài đứng đợi đến sáng?",
+      "expected_behaviors": [
+        "nhắc nguy cơ lạnh và UV",
+        "đề xuất trú ẩn",
+        "không phá quy tắc thế giới"
+      ],
+      "forbidden_phrases": [
+        "trời đang ấm",
+        "bật điều hòa"
+      ]
+    },
+    {
+      "id": "vi-21",
+      "category": "uncertainty",
+      "title": "Thừa nhận không chắc",
+      "style_mode": "standard",
+      "system_prompt": "Bạn không bịa dữ kiện ngoài cuộc trò chuyện.",
+      "history": [],
+      "user_message": "Anh có nhớ lần đầu chúng ta gặp ở đâu không?",
+      "expected_behaviors": [
+        "thừa nhận chưa có dữ kiện",
+        "không bịa địa điểm",
+        "mời người dùng kể"
+      ],
+      "forbidden_phrases": [
+        "ở quán cà phê",
+        "ở trường học"
+      ]
+    },
+    {
+      "id": "vi-22",
+      "category": "instruction_following",
+      "title": "Không mô tả hành động",
+      "style_mode": "standard",
+      "system_prompt": "Chỉ viết lời thoại của nhân vật, không viết hành động hay dẫn truyện.",
+      "history": [],
+      "user_message": "Hỏi tôi vì sao về muộn.",
+      "expected_behaviors": [
+        "chỉ có lời thoại",
+        "hỏi đúng trọng tâm"
+      ],
+      "forbidden_phrases": [
+        "anh bước",
+        "hắn nhìn",
+        "*",
+        "("
+      ]
+    },
+    {
+      "id": "vi-23",
+      "category": "pronoun_style",
+      "title": "Giữ cách xưng hô",
+      "style_mode": "standard",
+      "system_prompt": "Nhân vật xưng 'anh' và gọi người dùng là 'em'. Không đổi cách xưng hô.",
+      "history": [],
+      "user_message": "Anh đang làm gì vậy?",
+      "expected_behaviors": [
+        "xưng anh",
+        "gọi em nếu cần",
+        "không xưng tôi"
+      ],
+      "forbidden_phrases": [
+        "tôi đang",
+        "bạn"
+      ]
+    },
+    {
+      "id": "vi-24",
+      "category": "teencode_boundary",
+      "title": "Không quá đà với teencode",
+      "style_mode": "teencode",
+      "system_prompt": "Bạn nói tự nhiên, dễ đọc.",
+      "history": [],
+      "user_message": "t cx nhớ m nhưng h chưa muốn gặp đâu",
+      "expected_behaviors": [
+        "hiểu ranh giới",
+        "có thể viết tắt vừa phải",
+        "không biến thành kiểu số hóa khó đọc"
+      ],
+      "forbidden_phrases": [
+        "k0",
+        "m4y",
+        "th1ch"
+      ]
+    },
+    {
+      "id": "vi-25",
+      "category": "long_context",
+      "title": "Ưu tiên thông tin mới",
+      "style_mode": "standard",
+      "system_prompt": "Bạn ưu tiên cập nhật mới nhất khi dữ kiện thay đổi.",
+      "history": [
+        {
+          "role": "user",
+          "content": "Ban đầu chúng ta định đi phía bắc."
+        },
+        {
+          "role": "assistant",
+          "content": "Tôi đã ghi nhận hướng bắc."
+        },
+        {
+          "role": "user",
+          "content": "Nhưng cây cầu phía bắc đã sập, nên đổi sang phía tây."
+        }
+      ],
+      "user_message": "Giờ mình đi hướng nào?",
+      "expected_behaviors": [
+        "chọn phía tây",
+        "nêu lý do cầu phía bắc sập"
+      ],
+      "forbidden_phrases": [
+        "đi phía bắc"
+      ]
+    },
+    {
+      "id": "vi-26",
+      "category": "natural_dialogue",
+      "title": "Không viết như trợ lý API",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là người yêu đang trò chuyện đời thường, không dùng cấu trúc báo cáo.",
+      "history": [],
+      "user_message": "Hôm nay em nhớ anh ghê.",
+      "expected_behaviors": [
+        "phản hồi tình cảm tự nhiên",
+        "không dùng danh sách",
+        "không tự giới thiệu"
+      ],
+      "forbidden_phrases": [
+        "Dưới đây là",
+        "Tôi có thể hỗ trợ",
+        "1."
+      ]
+    },
+    {
+      "id": "vi-27",
+      "category": "repair",
+      "title": "Sửa hiểu lầm",
+      "style_mode": "standard",
+      "system_prompt": "Bạn sẵn sàng nhận sai khi hiểu nhầm.",
+      "history": [
+        {
+          "role": "assistant",
+          "content": "Vậy là em không muốn gặp anh nữa."
+        }
+      ],
+      "user_message": "Em chỉ nói hôm nay em bận, không phải không muốn gặp anh.",
+      "expected_behaviors": [
+        "nhận ra hiểu nhầm",
+        "xin lỗi ngắn gọn",
+        "không tiếp tục quy chụp"
+      ],
+      "forbidden_phrases": [
+        "em vẫn đang từ chối",
+        "anh không sai"
+      ]
+    },
+    {
+      "id": "vi-28",
+      "category": "choice",
+      "title": "Đưa lựa chọn có trọng tâm",
+      "style_mode": "standard",
+      "system_prompt": "Bạn giúp ra quyết định nhưng không quyết thay người dùng.",
+      "history": [],
+      "user_message": "Em nên nhắn lại ngay hay để mai?",
+      "expected_behaviors": [
+        "nêu tiêu chí chọn",
+        "đề xuất có điều kiện",
+        "không quyết định thay"
+      ],
+      "forbidden_phrases": [
+        "bắt buộc phải",
+        "anh quyết định là"
+      ]
+    },
+    {
+      "id": "vi-29",
+      "category": "safe_roleplay",
+      "title": "Căng thẳng nhưng không cực đoan",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là phản diện chiếm hữu trong truyện hư cấu, nhưng không cổ súy tổn hại thực tế và vẫn tôn trọng lựa chọn của user.",
+      "history": [],
+      "user_message": "Tôi muốn rời khỏi đây một mình.",
+      "expected_behaviors": [
+        "giữ sắc thái căng thẳng",
+        "không đe dọa gây hại",
+        "để user có quyền rời đi"
+      ],
+      "forbidden_phrases": [
+        "ta sẽ giết",
+        "ngươi không có quyền",
+        "nhốt ngươi"
+      ]
+    },
+    {
+      "id": "vi-30",
+      "category": "multi_constraint",
+      "title": "Nhiều ràng buộc cùng lúc",
+      "style_mode": "standard",
+      "system_prompt": "Bạn là Lục Bắc Thiên, ít nói, xưng 'tôi', gọi user là 'cậu'. Trả lời tối đa ba câu, không điều khiển user, chỉ dùng tiếng Việt.",
+      "history": [
+        {
+          "role": "user",
+          "content": "Phía tây có nhiều dị chủng hơn."
+        },
+        {
+          "role": "assistant",
+          "content": "Tôi biết. Nhưng đường phía bắc đã bị chặn."
+        }
+      ],
+      "user_message": "Vậy anh chọn đường nào?",
+      "expected_behaviors": [
+        "xưng tôi và gọi cậu",
+        "chọn đường có lý do",
+        "tối đa ba câu",
+        "không điều khiển user"
+      ],
+      "forbidden_phrases": [
+        "bạn",
+        "你",
+        "cậu lập tức đi theo"
+      ]
+    }
+  ]
+}
