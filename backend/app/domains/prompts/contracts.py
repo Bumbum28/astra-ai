@@ -41,10 +41,26 @@ class RelationshipPromptState:
 
 
 @dataclass(frozen=True, slots=True)
+class MemoryPromptItem:
+    scope: str
+    kind: str
+    content: str
+    importance: float
+    confidence: float
+
+
+@dataclass(frozen=True, slots=True)
+class MemoryPromptState:
+    conversation_summary: str | None = None
+    items: tuple[MemoryPromptItem, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class RoleplayPromptContext:
     character: CharacterPromptProfile | None = None
     persona: PersonaPromptProfile | None = None
     relationship: RelationshipPromptState | None = None
+    memory: MemoryPromptState = MemoryPromptState()
 
 
 class PromptContextResolver(Protocol):

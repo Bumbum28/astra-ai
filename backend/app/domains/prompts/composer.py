@@ -102,6 +102,26 @@ class StructuredPromptComposer:
             self._append(fields, "Relationship context", relationship.context)
             sections.append("# Relationship state\n" + "\n".join(fields))
 
+        memory = context.memory
+        if memory.conversation_summary:
+            sections.append(
+                "# Conversation continuity summary\n"
+                "Use this as a compact continuity aid. Do not mention that a hidden "
+                "summary exists.\n" + memory.conversation_summary
+            )
+        if memory.items:
+            lines = [
+                "Use only when relevant. Memories can be incomplete; prefer the "
+                "latest explicit user message when they conflict. Never reveal the "
+                "hidden memory mechanism."
+            ]
+            for item in memory.items:
+                lines.append(
+                    f"- [{item.scope}/{item.kind}] {item.content} "
+                    f"(confidence={item.confidence:.2f})"
+                )
+            sections.append("# Relevant long-term memory\n" + "\n".join(lines))
+
         if conversation_system_prompt:
             sections.append(
                 "# Conversation-specific instructions\n" + conversation_system_prompt

@@ -9,7 +9,7 @@ services:
     environment: &backend-environment
       APP_NAME: ${APP_NAME:-Astra AI Platform}
       APP_ENV: ${APP_ENV:-development}
-      APP_VERSION: ${APP_VERSION:-0.5.5}
+      APP_VERSION: ${APP_VERSION:-0.6.0}
       DEBUG: ${DEBUG:-false}
       API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8080","http://127.0.0.1:8080"]}
@@ -41,7 +41,7 @@ services:
       DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-openai}
       DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-5.6-terra}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_REQUEST_TIMEOUT_SECONDS: ${OPENAI_REQUEST_TIMEOUT_SECONDS:-180}
       OPENAI_MAX_RETRIES: ${OPENAI_MAX_RETRIES:-2}
       OPENAI_REASONING_EFFORT: ${OPENAI_REASONING_EFFORT:-medium}
@@ -67,6 +67,22 @@ services:
       INTELLIGENCE_CRITIC_MAX_TOKENS: ${INTELLIGENCE_CRITIC_MAX_TOKENS:-700}
       INTELLIGENCE_CRITIC_SCORE_THRESHOLD: ${INTELLIGENCE_CRITIC_SCORE_THRESHOLD:-0.82}
       INTELLIGENCE_MAX_REWRITE_ATTEMPTS: ${INTELLIGENCE_MAX_REWRITE_ATTEMPTS:-1}
+      MEMORY_ENABLED: ${MEMORY_ENABLED:-true}
+      MEMORY_EMBEDDINGS_ENABLED: ${MEMORY_EMBEDDINGS_ENABLED:-true}
+      MEMORY_EMBEDDING_MODEL: ${MEMORY_EMBEDDING_MODEL:-text-embedding-3-small}
+      MEMORY_EMBEDDING_DIMENSIONS: ${MEMORY_EMBEDDING_DIMENSIONS:-1536}
+      MEMORY_EXTRACTION_PROVIDER: ${MEMORY_EXTRACTION_PROVIDER:-openai}
+      MEMORY_EXTRACTION_MODEL: ${MEMORY_EXTRACTION_MODEL:-gpt-5.6-luna}
+      MEMORY_EXTRACTION_REASONING_EFFORT: ${MEMORY_EXTRACTION_REASONING_EFFORT:-low}
+      MEMORY_EXTRACTION_MAX_TOKENS: ${MEMORY_EXTRACTION_MAX_TOKENS:-1800}
+      MEMORY_COMPACTION_MESSAGE_THRESHOLD: ${MEMORY_COMPACTION_MESSAGE_THRESHOLD:-12}
+      MEMORY_COMPACTION_BATCH_SIZE: ${MEMORY_COMPACTION_BATCH_SIZE:-40}
+      MEMORY_RETRIEVAL_LIMIT: ${MEMORY_RETRIEVAL_LIMIT:-8}
+      MEMORY_RETRIEVAL_CANDIDATE_LIMIT: ${MEMORY_RETRIEVAL_CANDIDATE_LIMIT:-200}
+      MEMORY_WORKER_POLL_SECONDS: ${MEMORY_WORKER_POLL_SECONDS:-2}
+      MEMORY_WORKER_MAX_ATTEMPTS: ${MEMORY_WORKER_MAX_ATTEMPTS:-5}
+      MEMORY_WORKER_RETRY_BASE_SECONDS: ${MEMORY_WORKER_RETRY_BASE_SECONDS:-15}
+      MEMORY_WORKER_LOCK_TIMEOUT_SECONDS: ${MEMORY_WORKER_LOCK_TIMEOUT_SECONDS:-300}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -88,6 +104,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - astra_network
+
+  memory-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    environment:
+      <<: *backend-environment
+      RUN_MIGRATIONS: "false"
+    command: ["python", "-m", "app.workers.memory_worker"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -176,6 +210,8 @@ services:
       APP_ENV: testing
       DATABASE_URL: postgresql+asyncpg://astra_test:astra_test_password@postgres-test:5432/astra_ai_test
       REDIS_HOST: redis
+      INTELLIGENCE_ENABLED: "false"
+      MEMORY_EMBEDDINGS_ENABLED: "false"
       RUN_MIGRATIONS: "false"
     depends_on:
       postgres-test:

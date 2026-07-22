@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 from uuid import UUID, uuid4
@@ -31,6 +31,8 @@ from app.domains.messages.model import (
     MessageRole,
     MessageStatus,
 )
+from app.domains.memories.model import MemoryTask, MemoryTaskStatus
+from app.domains.memories.retrieval import MemoryRetrievalService
 from app.domains.messages.schemas import (
     ChatExchangeResponse,
     MessageResponse,
@@ -44,6 +46,7 @@ from app.domains.prompts.contracts import (
 )
 from app.domains.prompts.service import RoleplayPromptContextResolver
 from app.domains.prompts.token_budget import PromptTokenBudgeter
+from app.embeddings.service import EmbeddingService
 from app.llm.chat.service import ChatService as LLMChatService
 from app.llm.contracts import (
     LLMChunk,
@@ -82,6 +85,8 @@ class ChatApplicationService:
         language_guard: VietnameseOutputGuard | None = None,
         intelligence_pipeline: IntelligencePipeline | None = None,
         token_budgeter: PromptTokenBudgeter | None = None,
+        embedding_service: EmbeddingService | None = None,
+        memory_retrieval: MemoryRetrievalService | None = None,
     ) -> None:
         self._uow_factory = uow_factory
         self._llm_service = llm_service
@@ -95,6 +100,8 @@ class ChatApplicationService:
             llm_service, config
         )
         self._token_budgeter = token_budgeter or PromptTokenBudgeter()
+        self._embeddings = embedding_service or EmbeddingService(None)
+        self._memory_retrieval = memory_retrieval or MemoryRetrievalService(config)
 
     async def send_message(
         self,
@@ -256,6 +263,13 @@ class ChatApplicationService:
                 f"Message exceeds {self._config.chat_max_message_length} characters."
             )
 
+        query_embedding = None
+        if self._config.memory_enabled and self._embeddings.enabled:
+            try:
+                query_embedding = await self._embeddings.embed_one(request.content)
+            except Exception:
+                query_embedding = None
+
         async with self._uow_factory() as uow:
             conversation = await uow.conversations.get_owned(
                 conversation_id,
@@ -375,6 +389,14 @@ class ChatApplicationService:
                 uow,
                 conversation,
             )
+            memory_context = await self._memory_retrieval.retrieve(
+                uow,
+                conversation,
+                user_id,
+                request.content,
+                query_embedding,
+            )
+            prompt_context = replace(prompt_context, memory=memory_context)
             prepared = self._build_prepared(
                 conversation,
                 user_message,
@@ -699,6 +721,27 @@ class ChatApplicationService:
             )
             if relationship is not None:
                 relationship.turn_count += 1
+            if self._config.memory_enabled:
+                completed_count = await uow.messages.count_completed(
+                    assistant.conversation_id
+                )
+                threshold = self._config.memory_compaction_message_threshold
+                if completed_count >= threshold and completed_count % threshold == 0:
+                    existing_task = await uow.memory_tasks.get_by_trigger_message(
+                        assistant.id
+                    )
+                    if existing_task is None:
+                        await uow.memory_tasks.add(
+                            MemoryTask(
+                                id=uuid4(),
+                                conversation_id=assistant.conversation_id,
+                                trigger_message_id=assistant.id,
+                                status=MemoryTaskStatus.PENDING,
+                                attempts=0,
+                                available_at=datetime.now(UTC),
+                                task_metadata={"forced": False},
+                            )
+                        )
             await uow.flush()
             response = MessageResponse.model_validate(assistant)
             await uow.commit()

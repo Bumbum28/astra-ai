@@ -23,8 +23,9 @@ async def clean_database(migrated_database: None) -> None:
     async with AsyncSessionFactory() as session:
         await session.execute(
             text(
-                "TRUNCATE relationship_events, relationships, messages, "
-                "conversations, character_versions, characters, persona_versions, "
+                "TRUNCATE memory_tasks, conversation_summaries, memories, "
+                "relationship_events, relationships, messages, conversations, "
+                "character_versions, characters, persona_versions, "
                 "personas, refresh_sessions, users RESTART IDENTITY CASCADE"
             )
         )

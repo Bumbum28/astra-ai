@@ -15,6 +15,18 @@ from app.domains.conversations.model import Conversation
 from app.domains.conversations.repository import ConversationRepository
 from app.domains.messages.model import Message, MessageRole, MessageStatus
 from app.domains.messages.repository import MessageRepository
+from app.domains.memories.model import (
+    ConversationSummary,
+    Memory,
+    MemoryScope,
+    MemoryTask,
+    MemoryTaskStatus,
+)
+from app.domains.memories.repository import (
+    ConversationSummaryRepository,
+    MemoryRepository,
+    MemoryTaskRepository,
+)
 from app.domains.personas.model import Persona, PersonaVersion
 from app.domains.personas.repository import PersonaRepository, PersonaVersionRepository
 from app.domains.relationships.model import Relationship, RelationshipEvent
@@ -214,6 +226,191 @@ class FakeMessageRepository:
         ]
         items.sort(key=lambda item: (item.created_at, item.id))
         return items[-limit:]
+
+
+    async def list_completed_after(
+        self,
+        conversation_id: UUID,
+        *,
+        after: CursorPosition | None,
+        limit: int,
+    ) -> list[Message]:
+        items = [
+            item
+            for item in self.items.values()
+            if item.conversation_id == conversation_id
+            and item.status == MessageStatus.COMPLETED
+            and item.role in {MessageRole.USER, MessageRole.ASSISTANT}
+        ]
+        items.sort(key=lambda item: (item.created_at, item.id))
+        if after is not None:
+            items = [
+                item
+                for item in items
+                if (item.created_at, item.id) > (after.timestamp, after.entity_id)
+            ]
+        return items[:limit]
+
+    async def count_completed(self, conversation_id: UUID) -> int:
+        return len(
+            [
+                item
+                for item in self.items.values()
+                if item.conversation_id == conversation_id
+                and item.status == MessageStatus.COMPLETED
+                and item.role in {MessageRole.USER, MessageRole.ASSISTANT}
+            ]
+        )
+
+
+class FakeMemoryRepository:
+    def __init__(self) -> None:
+        self.items: dict[UUID, Memory] = {}
+
+    async def add(self, memory: Memory) -> None:
+        self.items[memory.id] = memory
+
+    async def get_owned(
+        self, memory_id: UUID, user_id: UUID, *, for_update: bool = False
+    ) -> Memory | None:
+        item = self.items.get(memory_id)
+        return item if item is not None and item.user_id == user_id else None
+
+    async def find_active_by_key(
+        self, user_id: UUID, **kwargs: object
+    ) -> Memory | None:
+        return next(
+            (
+                item
+                for item in self.items.values()
+                if item.user_id == user_id
+                and item.normalized_key == kwargs.get("normalized_key")
+                and item.scope == kwargs.get("scope")
+                and item.status.value == "active"
+            ),
+            None,
+        )
+
+    async def list_for_user(
+        self,
+        user_id: UUID,
+        *,
+        limit: int,
+        cursor: CursorPosition | None = None,
+        scope: object | None = None,
+        conversation_id: UUID | None = None,
+        include_archived: bool = False,
+    ) -> list[Memory]:
+        items = [item for item in self.items.values() if item.user_id == user_id]
+        if not include_archived:
+            items = [item for item in items if item.status.value == "active"]
+        if scope is not None:
+            items = [item for item in items if item.scope == scope]
+        if conversation_id is not None:
+            items = [item for item in items if item.conversation_id == conversation_id]
+        items.sort(key=lambda item: (item.updated_at, item.id), reverse=True)
+        return items[:limit]
+
+    async def list_context_candidates(
+        self, user_id: UUID, **kwargs: object
+    ) -> list[Memory]:
+        limit = int(kwargs.get("limit", 20))
+        conversation_id = kwargs.get("conversation_id")
+        character_id = kwargs.get("character_id")
+        persona_id = kwargs.get("persona_id")
+        items = []
+        for item in self.items.values():
+            if item.user_id != user_id or item.status.value != "active":
+                continue
+            if persona_id is None and item.persona_id is not None:
+                continue
+            if persona_id is not None and item.persona_id not in {None, persona_id}:
+                continue
+            in_scope = (
+                item.scope == MemoryScope.USER
+                or (
+                    item.scope == MemoryScope.CHARACTER
+                    and character_id is not None
+                    and item.character_id == character_id
+                )
+                or (
+                    item.scope
+                    in {
+                        MemoryScope.RELATIONSHIP,
+                        MemoryScope.WORLD,
+                        MemoryScope.CONVERSATION,
+                    }
+                    and item.conversation_id == conversation_id
+                )
+            )
+            if in_scope:
+                items.append(item)
+        return items[:limit]
+
+    async def touch_accessed(self, memory_ids: list[UUID]) -> None:
+        for memory_id in memory_ids:
+            item = self.items.get(memory_id)
+            if item is not None:
+                item.access_count += 1
+
+
+class FakeConversationSummaryRepository:
+    def __init__(self) -> None:
+        self.items: dict[UUID, ConversationSummary] = {}
+
+    async def add(self, summary: ConversationSummary) -> None:
+        self.items[summary.conversation_id] = summary
+
+    async def get_by_conversation(
+        self, conversation_id: UUID, *, for_update: bool = False
+    ) -> ConversationSummary | None:
+        return self.items.get(conversation_id)
+
+
+class FakeMemoryTaskRepository:
+    def __init__(self) -> None:
+        self.items: dict[UUID, MemoryTask] = {}
+
+    async def add(self, task: MemoryTask) -> None:
+        self.items[task.id] = task
+
+    async def get_by_trigger_message(
+        self, trigger_message_id: UUID
+    ) -> MemoryTask | None:
+        return next(
+            (
+                item
+                for item in self.items.values()
+                if item.trigger_message_id == trigger_message_id
+            ),
+            None,
+        )
+
+    async def get_by_id(
+        self, task_id: UUID, *, for_update: bool = False
+    ) -> MemoryTask | None:
+        return self.items.get(task_id)
+
+    async def claim_next(
+        self, *, max_attempts: int, lock_timeout_seconds: int
+    ) -> MemoryTask | None:
+        for item in self.items.values():
+            if item.status == MemoryTaskStatus.PENDING and item.attempts < max_attempts:
+                item.status = MemoryTaskStatus.PROCESSING
+                item.attempts += 1
+                return item
+        return None
+
+    async def count_pending(self, conversation_id: UUID) -> int:
+        return len(
+            [
+                item
+                for item in self.items.values()
+                if item.conversation_id == conversation_id
+                and item.status
+                in {MemoryTaskStatus.PENDING, MemoryTaskStatus.PROCESSING}
+            ]
+        )
 
 
 class FakeCharacterRepository:
@@ -420,6 +617,9 @@ class FakeUnitOfWork:
         sessions: FakeRefreshSessionRepository,
         conversations: FakeConversationRepository,
         messages: FakeMessageRepository,
+        memories: FakeMemoryRepository,
+        conversation_summaries: FakeConversationSummaryRepository,
+        memory_tasks: FakeMemoryTaskRepository,
         characters: FakeCharacterRepository,
         character_versions: FakeCharacterVersionRepository,
         personas: FakePersonaRepository,
@@ -431,6 +631,11 @@ class FakeUnitOfWork:
         self.refresh_sessions: RefreshSessionRepository = sessions
         self.conversations: ConversationRepository = conversations
         self.messages: MessageRepository = messages
+        self.memories: MemoryRepository = memories
+        self.conversation_summaries: ConversationSummaryRepository = (
+            conversation_summaries
+        )
+        self.memory_tasks: MemoryTaskRepository = memory_tasks
         self.characters: CharacterRepository = characters
         self.character_versions: CharacterVersionRepository = character_versions
         self.personas: PersonaRepository = personas
@@ -456,6 +661,9 @@ class FakeUnitOfWork:
             *self.users.items.values(),  # type: ignore[attr-defined]
             *self.conversations.items.values(),  # type: ignore[attr-defined]
             *self.messages.items.values(),  # type: ignore[attr-defined]
+            *self.memories.items.values(),  # type: ignore[attr-defined]
+            *self.conversation_summaries.items.values(),  # type: ignore[attr-defined]
+            *self.memory_tasks.items.values(),  # type: ignore[attr-defined]
             *self.characters.items.values(),  # type: ignore[attr-defined]
             *self.character_versions.items.values(),  # type: ignore[attr-defined]
             *self.personas.items.values(),  # type: ignore[attr-defined]
@@ -482,6 +690,9 @@ class FakeUnitOfWorkFactory:
         self.sessions = FakeRefreshSessionRepository()
         self.conversations = FakeConversationRepository()
         self.messages = FakeMessageRepository()
+        self.memories = FakeMemoryRepository()
+        self.conversation_summaries = FakeConversationSummaryRepository()
+        self.memory_tasks = FakeMemoryTaskRepository()
         self.characters = FakeCharacterRepository()
         self.character_versions = FakeCharacterVersionRepository()
         self.personas = FakePersonaRepository()
@@ -496,6 +707,9 @@ class FakeUnitOfWorkFactory:
             self.sessions,
             self.conversations,
             self.messages,
+            self.memories,
+            self.conversation_summaries,
+            self.memory_tasks,
             self.characters,
             self.character_versions,
             self.personas,
