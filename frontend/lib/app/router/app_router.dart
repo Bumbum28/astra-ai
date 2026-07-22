@@ -5,7 +5,7 @@ import 'package:astra_ai/features/auth/presentation/pages/login_page.dart';
 import 'package:astra_ai/features/auth/presentation/pages/register_page.dart';
 import 'package:astra_ai/features/auth/presentation/pages/splash_page.dart';
 import 'package:astra_ai/features/characters/presentation/characters_placeholder_page.dart';
-import 'package:astra_ai/features/chat/presentation/chat_placeholder_page.dart';
+import 'package:astra_ai/features/chat/presentation/pages/chat_page.dart';
 import 'package:astra_ai/features/home/presentation/home_page.dart';
 import 'package:astra_ai/features/profile/presentation/profile_page.dart';
 import 'package:astra_ai/features/settings/presentation/settings_page.dart';
@@ -69,7 +69,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.chats,
-            builder: (context, state) => const ChatPlaceholderPage(),
+            builder: (context, state) => const ChatPage(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':conversationId',
+                builder: (context, state) => ChatPage(
+                  conversationId: state.pathParameters['conversationId'],
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: RoutePaths.characters,

@@ -4,6 +4,8 @@ abstract final class RoutePaths {
   static const register = '/register';
   static const home = '/home';
   static const chats = '/chats';
+
+  static String chat(String conversationId) => '$chats/$conversationId';
   static const characters = '/characters';
   static const profile = '/profile';
   static const settings = '/settings';

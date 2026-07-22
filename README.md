@@ -12,6 +12,8 @@ RAG, tool calling, streaming, and multi-device sessions.
   multi-device revoke, LLM abstraction.
 - Sprint 3: Flutter foundation, secure authentication client, route guards,
   responsive home shell, sidebar, profile, and settings.
+- Sprint 4: persistent conversations, cursor-paginated history, idempotent
+  messages, SSE streaming, Markdown rendering, and responsive Flutter Chat.
 
 ## Repository
 
@@ -72,4 +74,4 @@ cd frontend
 PowerShell -ExecutionPolicy Bypass -File .\tool\check.ps1
 ```
 
-See `docs/sprint-03-flutter-foundation.md` for the complete Sprint 3 handoff.
+See `docs/sprint-04-chat-streaming.md` for the Sprint 4 API, migration, and verification guide.
