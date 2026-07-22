@@ -1,8 +1,14 @@
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import quote_plus
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ReasoningEffortSetting = Literal[
+    "none", "minimal", "low", "medium", "high", "xhigh", "max"
+]
 
 
 class AppConfig(BaseSettings):
@@ -16,7 +22,7 @@ class AppConfig(BaseSettings):
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.5.0", alias="APP_VERSION")
+    app_version: str = Field(default="0.5.5", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")
@@ -64,9 +70,19 @@ class AppConfig(BaseSettings):
     )
 
     default_llm_provider: str = Field(default="openai", alias="DEFAULT_LLM_PROVIDER")
-    default_llm_model: str = Field(default="gpt-4.1-mini", alias="DEFAULT_LLM_MODEL")
+    default_llm_model: str = Field(default="gpt-5.6-terra", alias="DEFAULT_LLM_MODEL")
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
+    openai_request_timeout_seconds: float = Field(
+        default=180.0, alias="OPENAI_REQUEST_TIMEOUT_SECONDS", gt=0
+    )
+    openai_max_retries: int = Field(default=2, alias="OPENAI_MAX_RETRIES", ge=0, le=10)
+    openai_reasoning_effort: ReasoningEffortSetting = Field(
+        default="medium", alias="OPENAI_REASONING_EFFORT"
+    )
+    openai_store_responses: bool = Field(
+        default=False, alias="OPENAI_STORE_RESPONSES"
+    )
 
     ollama_base_url: str = Field(
         default="http://localhost:11434", alias="OLLAMA_BASE_URL"
@@ -78,8 +94,11 @@ class AppConfig(BaseSettings):
         default=120.0, alias="OLLAMA_REQUEST_TIMEOUT_SECONDS", gt=0
     )
 
+    chat_context_token_budget: int = Field(
+        default=16384, alias="CHAT_CONTEXT_TOKEN_BUDGET", ge=2048, le=262144
+    )
     chat_context_message_limit: int = Field(
-        default=50, alias="CHAT_CONTEXT_MESSAGE_LIMIT", ge=1, le=500
+        default=100, alias="CHAT_CONTEXT_MESSAGE_LIMIT", ge=1, le=500
     )
     chat_max_message_length: int = Field(
         default=12000, alias="CHAT_MAX_MESSAGE_LENGTH", ge=256, le=100000
@@ -93,6 +112,44 @@ class AppConfig(BaseSettings):
     chat_stream_heartbeat_seconds: float = Field(
         default=15.0, alias="CHAT_STREAM_HEARTBEAT_SECONDS", ge=1, le=60
     )
+
+    intelligence_enabled: bool = Field(
+        default=True, alias="INTELLIGENCE_ENABLED"
+    )
+    intelligence_provider: str = Field(
+        default="openai", alias="INTELLIGENCE_PROVIDER"
+    )
+    intelligence_planner_model: str = Field(
+        default="gpt-5.6-luna", alias="INTELLIGENCE_PLANNER_MODEL"
+    )
+    intelligence_critic_model: str = Field(
+        default="gpt-5.6-luna", alias="INTELLIGENCE_CRITIC_MODEL"
+    )
+    intelligence_planner_reasoning_effort: ReasoningEffortSetting = Field(
+        default="low", alias="INTELLIGENCE_PLANNER_REASONING_EFFORT"
+    )
+    intelligence_generation_reasoning_effort: ReasoningEffortSetting = Field(
+        default="medium", alias="INTELLIGENCE_GENERATION_REASONING_EFFORT"
+    )
+    intelligence_critic_reasoning_effort: ReasoningEffortSetting = Field(
+        default="low", alias="INTELLIGENCE_CRITIC_REASONING_EFFORT"
+    )
+    intelligence_planner_max_tokens: int = Field(
+        default=900, alias="INTELLIGENCE_PLANNER_MAX_TOKENS", ge=128, le=4096
+    )
+    intelligence_critic_max_tokens: int = Field(
+        default=700, alias="INTELLIGENCE_CRITIC_MAX_TOKENS", ge=128, le=4096
+    )
+    intelligence_critic_score_threshold: float = Field(
+        default=0.82,
+        alias="INTELLIGENCE_CRITIC_SCORE_THRESHOLD",
+        ge=0,
+        le=1,
+    )
+    intelligence_max_rewrite_attempts: int = Field(
+        default=1, alias="INTELLIGENCE_MAX_REWRITE_ATTEMPTS", ge=0, le=2
+    )
+
     conversation_page_size_max: int = Field(
         default=100, alias="CONVERSATION_PAGE_SIZE_MAX", ge=10, le=500
     )

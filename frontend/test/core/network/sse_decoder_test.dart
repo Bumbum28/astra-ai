@@ -5,7 +5,9 @@ void main() {
   test('decodes SSE frames split across transport chunks', () {
     final decoder = SseDecoder();
 
-    final first = decoder.add('event: message.delta\ndata: {"delta":"Xin');
+    final first = decoder.add(
+      'event: message.delta\ndata: {"delta":"Xin',
+    );
     final second = decoder.add(' chào"}\n\n');
 
     expect(first, isEmpty);

@@ -17,6 +17,9 @@ RAG, tool calling, streaming, and multi-device sessions.
 - Sprint 5: versioned Characters and Personas, conversation profile snapshots,
   structured prompt composition, Relationship state/history, and Flutter
   management screens.
+- Sprint 5.5: OpenAI Responses API, GPT reasoning, structured planning and
+  criticism, optional rewrite, a 16K context budget, and a 30-case Vietnamese
+  roleplay benchmark.
 
 ## Repository
 
@@ -77,4 +80,4 @@ cd frontend
 PowerShell -ExecutionPolicy Bypass -File .\tool\check.ps1
 ```
 
-See `docs/sprint-05-roleplay-profiles.md` for the Sprint 5 API, migration, and verification guide.
+See `docs/sprint-05-5-gpt-intelligence.md` for GPT setup, verification, cost controls, and benchmark commands. Test evidence and environment limitations are recorded in `docs/SPRINT_05_5_CHECKS.md`.

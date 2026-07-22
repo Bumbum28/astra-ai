@@ -49,6 +49,7 @@ async def test_chat_composes_pinned_profiles_and_increments_turn_count() -> None
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
+        intelligence_enabled=False,
     )
     user_id = uuid4()
     character = await CharacterService(uow_factory).create(

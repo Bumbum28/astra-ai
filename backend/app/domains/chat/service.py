@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from app.common.constants.error_codes import ErrorCode
@@ -24,6 +24,7 @@ from app.domains.chat.schemas import (
 )
 from app.domains.chat.sse import encode_sse
 from app.domains.conversations.model import Conversation
+from app.domains.intelligence.service import IntelligencePipeline
 from app.domains.messages.model import (
     Message,
     MessageContentType,
@@ -42,6 +43,7 @@ from app.domains.prompts.contracts import (
     RoleplayPromptContext,
 )
 from app.domains.prompts.service import RoleplayPromptContextResolver
+from app.domains.prompts.token_budget import PromptTokenBudgeter
 from app.llm.chat.service import ChatService as LLMChatService
 from app.llm.contracts import (
     LLMChunk,
@@ -50,6 +52,7 @@ from app.llm.contracts import (
     LLMRequest,
     LLMResponse,
 )
+from app.llm.contracts.request import ReasoningEffort
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +80,8 @@ class ChatApplicationService:
         prompt_context_resolver: PromptContextResolver | None = None,
         prompt_composer: PromptComposer | None = None,
         language_guard: VietnameseOutputGuard | None = None,
+        intelligence_pipeline: IntelligencePipeline | None = None,
+        token_budgeter: PromptTokenBudgeter | None = None,
     ) -> None:
         self._uow_factory = uow_factory
         self._llm_service = llm_service
@@ -86,6 +91,10 @@ class ChatApplicationService:
         )
         self._prompt_composer = prompt_composer or StructuredPromptComposer()
         self._language_guard = language_guard or VietnameseOutputGuard()
+        self._intelligence = intelligence_pipeline or IntelligencePipeline(
+            llm_service, config
+        )
+        self._token_budgeter = token_budgeter or PromptTokenBudgeter()
 
     async def send_message(
         self,
@@ -128,15 +137,10 @@ class ChatApplicationService:
                 else None
             ),
             metadata={
+                **response.metadata,
                 "provider": response.provider,
                 "model": response.model,
                 "finish_reason": response.finish_reason,
-                "language_guard_triggered": response.metadata.get(
-                    "language_guard_triggered"
-                ),
-                "language_guard_sanitized": response.metadata.get(
-                    "language_guard_sanitized"
-                ),
             },
         )
         return ChatExchangeResponse(
@@ -149,10 +153,11 @@ class ChatApplicationService:
         self,
         prepared: PreparedExchange,
     ) -> LLMResponse:
-        first_response = await self._llm_service.generate(
+        intelligence_result = await self._intelligence.generate(
             prepared.provider,
             prepared.llm_request,
         )
+        first_response = intelligence_result.response
         if not self._language_guard.contains_forbidden_script(
             first_response.content
         ):
@@ -227,6 +232,10 @@ class ChatApplicationService:
             request,
             streaming=True,
         )
+        if self._config.intelligence_enabled:
+            return PreparedChatStream(
+                events=self._intelligent_stream_events(prepared)
+            )
         chunks = (
             self._llm_service.stream(prepared.provider, prepared.llm_request)
             if prepared.needs_generation
@@ -408,12 +417,16 @@ class ChatApplicationService:
             messages.append(
                 LLMMessage(role=LLMMessageRole.USER, content=user_message.content)
             )
+        budget = self._token_budgeter.trim(
+            messages,
+            token_budget=self._config.chat_context_token_budget,
+        )
 
         return PreparedExchange(
             conversation_id=conversation.id,
             provider=provider,
             llm_request=LLMRequest(
-                messages=messages,
+                messages=budget.messages,
                 model=conversation.model or self._config.default_llm_model,
                 temperature=(
                     request.temperature
@@ -429,7 +442,17 @@ class ChatApplicationService:
                     if conversation.max_tokens is not None
                     else self._config.chat_default_max_tokens
                 ),
+                reasoning_effort=cast(
+                    ReasoningEffort, self._config.openai_reasoning_effort
+                ),
+                store=False,
                 metadata={
+                    "context_token_budget": self._config.chat_context_token_budget,
+                    "context_estimated_tokens": budget.estimated_tokens,
+                    "context_dropped_messages": budget.dropped_messages,
+                    "context_truncated_system_messages": (
+                        budget.truncated_system_messages
+                    ),
                     "conversation_id": str(conversation.id),
                     "character_id": (
                         str(conversation.character_id)
@@ -448,6 +471,76 @@ class ChatApplicationService:
             needs_generation=needs_generation,
             reused=reused,
         )
+
+    async def _intelligent_stream_events(
+        self,
+        prepared: PreparedExchange,
+    ) -> AsyncIterator[str]:
+        started = ChatStreamStarted(
+            user_message=prepared.user_message,
+            assistant_message=prepared.assistant_message,
+            reused=prepared.reused,
+        )
+        yield encode_sse("message.created", started.model_dump(mode="json"))
+
+        if not prepared.needs_generation:
+            completed = ChatStreamCompleted(message=prepared.assistant_message)
+            yield encode_sse("message.completed", completed.model_dump(mode="json"))
+            return
+
+        try:
+            response = await self._generate_with_language_guard(prepared)
+            for content in self._display_chunks(response.content):
+                delta = ChatStreamDelta(
+                    message_id=prepared.assistant_message.id,
+                    delta=content,
+                )
+                yield encode_sse("message.delta", delta.model_dump(mode="json"))
+            assistant = await self._finalize_success(
+                prepared.assistant_message.id,
+                response.content,
+                provider_response_id=response.provider_response_id,
+                token_usage=(
+                    response.usage.model_dump(exclude_none=True)
+                    if response.usage is not None
+                    else None
+                ),
+                metadata={
+                    **response.metadata,
+                    "provider": response.provider,
+                    "model": response.model,
+                    "finish_reason": response.finish_reason,
+                },
+            )
+            completed = ChatStreamCompleted(message=assistant)
+            yield encode_sse("message.completed", completed.model_dump(mode="json"))
+        except asyncio.CancelledError as exc:
+            await asyncio.shield(
+                self._finalize_failure(prepared.assistant_message.id, "", exc)
+            )
+            raise
+        except Exception as exc:
+            await self._finalize_failure(prepared.assistant_message.id, "", exc)
+            error = self._stream_error(prepared.assistant_message.id, exc)
+            yield encode_sse("error", error.model_dump(mode="json"))
+
+    @staticmethod
+    def _display_chunks(content: str, target_size: int = 96) -> list[str]:
+        if not content:
+            return []
+        words = content.split(" ")
+        chunks: list[str] = []
+        current = ""
+        for word in words:
+            candidate = word if not current else f"{current} {word}"
+            if current and len(candidate) > target_size:
+                chunks.append(current + " ")
+                current = word
+            else:
+                current = candidate
+        if current:
+            chunks.append(current)
+        return chunks
 
     async def _stream_events(
         self,

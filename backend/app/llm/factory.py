@@ -19,8 +19,14 @@ class LLMFactory:
     def __init__(self, config: AppConfig, registry: ProviderRegistry) -> None:
         self._config = config
         self._registry = registry
+        self._instances: dict[LLMProviderName, BaseLLMProvider] = {}
 
     def get_provider(self, name: LLMProviderName) -> BaseLLMProvider:
+        provider = self._instances.get(name)
+        if provider is not None:
+            return provider
         provider_class = self._registry.get(name)
         constructor = cast(Callable[[AppConfig], BaseLLMProvider], provider_class)
-        return constructor(self._config)
+        provider = constructor(self._config)
+        self._instances[name] = provider
+        return provider
