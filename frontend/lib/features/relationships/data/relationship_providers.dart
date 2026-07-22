@@ -20,9 +20,7 @@ final relationshipRepositoryProvider = Provider<RelationshipRepository>((ref) {
   );
 });
 
-final relationshipProvider = FutureProvider.family<RelationshipProfile?, String>((
-  ref,
-  conversationId,
-) {
-  return ref.watch(relationshipRepositoryProvider).get(conversationId);
-});
+final relationshipProvider =
+    FutureProvider.family<RelationshipProfile?, String>((ref, conversationId) {
+      return ref.watch(relationshipRepositoryProvider).get(conversationId);
+    });
