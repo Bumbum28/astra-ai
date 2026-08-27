@@ -1,3 +1,4 @@
+import 'package:astra_ai/features/chat/domain/entities/chat_execution_mode.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_page_data.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_stream_event.dart';
 import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
@@ -20,5 +21,6 @@ abstract interface class ChatRepository {
     required String conversationId,
     required String content,
     required String clientMessageId,
+    ChatExecutionMode executionMode = ChatExecutionMode.direct,
   });
 }

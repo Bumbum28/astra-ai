@@ -233,6 +233,9 @@ class _ConversationViewState extends ConsumerState<ConversationView> {
                   alignment: Alignment.center,
                   child: ChatComposer(
                     isSending: state.isSending,
+                    executionMode: state.executionMode,
+                    onExecutionModeChanged: (mode) =>
+                        ref.read(provider.notifier).setExecutionMode(mode),
                     onSend: (content) =>
                         ref.read(provider.notifier).send(content),
                   ),

@@ -97,5 +97,32 @@ async def test_conversation_history_and_streaming_chat() -> None:
             )
             assert conversations.status_code == 200
             assert conversations.json()["data"]["items"][0]["title"] == "Xin chào"
+
+            agent_streamed = await client.post(
+                f"/api/v1/conversations/{conversation_id}/messages/stream",
+                json={
+                    "content": "Tóm tắt ngắn cuộc trò chuyện này",
+                    "client_message_id": "00000000-0000-4000-8000-000000000002",
+                    "execution_mode": "agent",
+                },
+                headers=headers,
+            )
+            assert agent_streamed.status_code == 200
+            assert '"execution_mode":"agent"' in agent_streamed.text.replace(" ", "")
+
+            agent_runs = await client.get("/api/v1/agent-runs", headers=headers)
+            assert agent_runs.status_code == 200
+            runs = agent_runs.json()["data"]["items"]
+            assert len(runs) == 1
+            assert runs[0]["conversation_id"] == conversation_id
+            assert runs[0]["status"] == "completed"
+
+            run_detail = await client.get(
+                f"/api/v1/agent-runs/{runs[0]['id']}/steps",
+                headers=headers,
+            )
+            assert run_detail.status_code == 200
+            steps = run_detail.json()["data"]["items"]
+            assert [step["kind"] for step in steps] == ["model"]
     finally:
         app.dependency_overrides.pop(get_llm_chat_service, None)

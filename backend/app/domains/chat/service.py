@@ -3,7 +3,7 @@ from collections.abc import AsyncIterator
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from app.common.constants.error_codes import ErrorCode
@@ -36,8 +36,15 @@ from app.domains.messages.schemas import (
     MessageResponse,
     MessageSendRequest,
 )
-from app.llm.chat.service import ChatService as LLMChatService
-from app.llm.contracts import LLMChunk, LLMMessage, LLMMessageRole, LLMRequest
+from app.llm.contracts import LLMChunk, LLMMessage, LLMMessageRole, LLMRequest, LLMResponse
+
+
+class ChatGenerationService(Protocol):
+    async def generate(self, provider_name: str, request: LLMRequest) -> LLMResponse: ...
+
+    def stream(
+        self, provider_name: str, request: LLMRequest
+    ) -> AsyncIterator[LLMChunk]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +67,7 @@ class ChatApplicationService:
     def __init__(
         self,
         uow_factory: UnitOfWorkFactory,
-        llm_service: LLMChatService,
+        llm_service: ChatGenerationService,
         config: AppConfig,
         context_assembler: ContextAssembler,
     ) -> None:
@@ -116,6 +123,7 @@ class ChatApplicationService:
                 "provider": response.provider,
                 "model": response.model,
                 "finish_reason": response.finish_reason,
+                **response.metadata,
             },
         )
         return ChatExchangeResponse(
@@ -338,7 +346,10 @@ class ChatApplicationService:
                     else self._config.chat_default_max_tokens
                 ),
                 metadata={
+                    "user_id": str(conversation.user_id),
                     "conversation_id": str(conversation.id),
+                    "user_message_id": str(user_message.id),
+                    "assistant_message_id": str(assistant_message.id),
                     "character_id": str(conversation.character_id)
                     if conversation.character_id
                     else None,
@@ -346,6 +357,8 @@ class ChatApplicationService:
                     if conversation.persona_id
                     else None,
                     "memory_ids": [str(item) for item in memory_ids],
+                    "execution_mode": request.execution_mode.value,
+                    "agent_allowed_tools": request.agent_allowed_tools,
                 },
             ),
             user_message=MessageResponse.model_validate(user_message),
@@ -374,6 +387,8 @@ class ChatApplicationService:
         content_parts: list[str] = []
         provider_response_id: str | None = None
         finish_reason: str | None = None
+        token_usage: dict[str, Any] | None = None
+        runtime_metadata: dict[str, Any] = {}
         try:
             if chunks is None:
                 raise RuntimeError("Streaming provider was not initialized.")
@@ -385,6 +400,10 @@ class ChatApplicationService:
                     chunk.provider_response_id or provider_response_id
                 )
                 finish_reason = chunk.finish_reason or finish_reason
+                if chunk.usage is not None:
+                    token_usage = chunk.usage.model_dump(exclude_none=True)
+                if chunk.metadata:
+                    runtime_metadata.update(chunk.metadata)
                 if not chunk.content:
                     continue
                 content_parts.append(chunk.content)
@@ -398,11 +417,12 @@ class ChatApplicationService:
                 prepared.assistant_message.id,
                 "".join(content_parts),
                 provider_response_id=provider_response_id,
-                token_usage=None,
+                token_usage=token_usage,
                 metadata={
                     "provider": prepared.provider,
                     "model": prepared.llm_request.model,
                     "finish_reason": finish_reason,
+                    **runtime_metadata,
                 },
             )
             completed = ChatStreamCompleted(message=assistant)
