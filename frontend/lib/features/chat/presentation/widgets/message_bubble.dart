@@ -59,6 +59,10 @@ class MessageBubble extends StatelessWidget {
                             ),
                       ),
                     ),
+                  if (message.isAgentResponse) ...<Widget>[
+                    const SizedBox(height: 8),
+                    _AgentRunBadge(message: message),
+                  ],
                   if (message.status ==
                       ChatMessageStatus.streaming) ...<Widget>[
                     const SizedBox(height: 8),
@@ -117,6 +121,40 @@ class _TypingIndicator extends StatelessWidget {
         ),
         SizedBox(width: 10),
         Text('Astra đang trả lời…'),
+      ],
+    );
+  }
+}
+
+class _AgentRunBadge extends StatelessWidget {
+  const _AgentRunBadge({required this.message});
+
+  final ChatMessage message;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = message.metadata['agent_step_count'];
+    final tools = message.metadata['agent_tool_call_count'];
+    final details = <String>[
+      if (steps is num) '${steps.toInt()} bước',
+      if (tools is num) '${tools.toInt()} tool',
+    ];
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(
+          Icons.hub_outlined,
+          size: 16,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          details.isEmpty ? 'Agent' : 'Agent · ${details.join(' · ')}',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }

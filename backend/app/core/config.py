@@ -16,7 +16,7 @@ class AppConfig(BaseSettings):
 
     app_name: str = Field(default="Astra AI Platform", alias="APP_NAME")
     app_env: str = Field(default="development", alias="APP_ENV")
-    app_version: str = Field(default="0.6.0", alias="APP_VERSION")
+    app_version: str = Field(default="0.7.0", alias="APP_VERSION")
     debug: bool = Field(default=False, alias="DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
     cors_origins: list[str] = Field(default_factory=list, alias="CORS_ORIGINS")
@@ -117,6 +117,22 @@ class AppConfig(BaseSettings):
     )
     tool_execution_timeout_seconds: float = Field(
         default=15.0, alias="TOOL_EXECUTION_TIMEOUT_SECONDS", gt=0, le=120
+    )
+    agent_max_steps: int = Field(
+        default=6, alias="AGENT_MAX_STEPS", ge=1, le=20
+    )
+    agent_max_tool_calls: int = Field(
+        default=8, alias="AGENT_MAX_TOOL_CALLS", ge=0, le=50
+    )
+    agent_timeout_seconds: float = Field(
+        default=90.0, alias="AGENT_TIMEOUT_SECONDS", gt=0, le=600
+    )
+    agent_stream_chunk_chars: int = Field(
+        default=160, alias="AGENT_STREAM_CHUNK_CHARS", ge=16, le=2000
+    )
+    agent_default_allowed_tools: list[str] = Field(
+        default_factory=lambda: ["search_knowledge", "search_conversation"],
+        alias="AGENT_DEFAULT_ALLOWED_TOOLS",
     )
 
     @model_validator(mode="after")

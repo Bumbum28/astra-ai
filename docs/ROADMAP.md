@@ -10,4 +10,4 @@
 - Sprint 8: Voice, image and multimodal workflows.
 - Sprint 9+: planning, background jobs and optional multi-agent orchestration.
 
-The key boundary is deliberate: Sprint 6 can describe and execute tools, but it does not run an autonomous LLM/tool loop. That loop belongs to Sprint 7.
+Sprint 7 now owns the bounded Agent loop. Sprint 8 remains focused on voice, image and multimodal workflows; more autonomous planning/background execution stays deferred to Sprint 9+.

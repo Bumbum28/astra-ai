@@ -34,3 +34,12 @@ class ToolExecutor:
                 f"Tool '{tool_name}' timed out.",
                 status_code=504,
             ) from exc
+        except AppException:
+            raise
+        except Exception as exc:
+            raise AppException(
+                ErrorCode.TOOL_EXECUTION_FAILED,
+                f"Tool '{tool_name}' failed.",
+                status_code=502,
+                details={"exception": type(exc).__name__},
+            ) from exc
