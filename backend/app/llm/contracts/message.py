@@ -3,6 +3,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.llm.contracts.tool import LLMToolCall
+
 
 class LLMMessageRole(StrEnum):
     SYSTEM = "system"
@@ -17,4 +19,6 @@ class LLMMessage(BaseModel):
     role: LLMMessageRole
     content: str
     name: str | None = None
+    tool_call_id: str | None = None
+    tool_calls: list[LLMToolCall] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)

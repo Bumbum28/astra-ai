@@ -1,14 +1,8 @@
 from functools import lru_cache
-from typing import Literal
 from urllib.parse import quote_plus
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-ReasoningEffortSetting = Literal[
-    "none", "minimal", "low", "medium", "high", "xhigh", "max"
-]
 
 
 class AppConfig(BaseSettings):
@@ -70,19 +64,9 @@ class AppConfig(BaseSettings):
     )
 
     default_llm_provider: str = Field(default="openai", alias="DEFAULT_LLM_PROVIDER")
-    default_llm_model: str = Field(default="gpt-5.6-terra", alias="DEFAULT_LLM_MODEL")
+    default_llm_model: str = Field(default="gpt-4.1-mini", alias="DEFAULT_LLM_MODEL")
     openai_api_key: SecretStr | None = Field(default=None, alias="OPENAI_API_KEY")
     openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
-    openai_request_timeout_seconds: float = Field(
-        default=180.0, alias="OPENAI_REQUEST_TIMEOUT_SECONDS", gt=0
-    )
-    openai_max_retries: int = Field(default=2, alias="OPENAI_MAX_RETRIES", ge=0, le=10)
-    openai_reasoning_effort: ReasoningEffortSetting = Field(
-        default="medium", alias="OPENAI_REASONING_EFFORT"
-    )
-    openai_store_responses: bool = Field(
-        default=False, alias="OPENAI_STORE_RESPONSES"
-    )
 
     ollama_base_url: str = Field(
         default="http://localhost:11434", alias="OLLAMA_BASE_URL"
@@ -94,11 +78,8 @@ class AppConfig(BaseSettings):
         default=120.0, alias="OLLAMA_REQUEST_TIMEOUT_SECONDS", gt=0
     )
 
-    chat_context_token_budget: int = Field(
-        default=16384, alias="CHAT_CONTEXT_TOKEN_BUDGET", ge=2048, le=262144
-    )
     chat_context_message_limit: int = Field(
-        default=100, alias="CHAT_CONTEXT_MESSAGE_LIMIT", ge=1, le=500
+        default=50, alias="CHAT_CONTEXT_MESSAGE_LIMIT", ge=1, le=500
     )
     chat_max_message_length: int = Field(
         default=12000, alias="CHAT_MAX_MESSAGE_LENGTH", ge=256, le=100000
@@ -112,93 +93,30 @@ class AppConfig(BaseSettings):
     chat_stream_heartbeat_seconds: float = Field(
         default=15.0, alias="CHAT_STREAM_HEARTBEAT_SECONDS", ge=1, le=60
     )
-
-    intelligence_enabled: bool = Field(
-        default=True, alias="INTELLIGENCE_ENABLED"
-    )
-    intelligence_provider: str = Field(
-        default="openai", alias="INTELLIGENCE_PROVIDER"
-    )
-    intelligence_planner_model: str = Field(
-        default="gpt-5.6-luna", alias="INTELLIGENCE_PLANNER_MODEL"
-    )
-    intelligence_critic_model: str = Field(
-        default="gpt-5.6-luna", alias="INTELLIGENCE_CRITIC_MODEL"
-    )
-    intelligence_planner_reasoning_effort: ReasoningEffortSetting = Field(
-        default="low", alias="INTELLIGENCE_PLANNER_REASONING_EFFORT"
-    )
-    intelligence_generation_reasoning_effort: ReasoningEffortSetting = Field(
-        default="medium", alias="INTELLIGENCE_GENERATION_REASONING_EFFORT"
-    )
-    intelligence_critic_reasoning_effort: ReasoningEffortSetting = Field(
-        default="low", alias="INTELLIGENCE_CRITIC_REASONING_EFFORT"
-    )
-    intelligence_planner_max_tokens: int = Field(
-        default=900, alias="INTELLIGENCE_PLANNER_MAX_TOKENS", ge=128, le=4096
-    )
-    intelligence_critic_max_tokens: int = Field(
-        default=700, alias="INTELLIGENCE_CRITIC_MAX_TOKENS", ge=128, le=4096
-    )
-    intelligence_critic_score_threshold: float = Field(
-        default=0.82,
-        alias="INTELLIGENCE_CRITIC_SCORE_THRESHOLD",
-        ge=0,
-        le=1,
-    )
-    intelligence_max_rewrite_attempts: int = Field(
-        default=1, alias="INTELLIGENCE_MAX_REWRITE_ATTEMPTS", ge=0, le=2
-    )
-
-    memory_enabled: bool = Field(default=True, alias="MEMORY_ENABLED")
-    memory_embeddings_enabled: bool = Field(
-        default=True, alias="MEMORY_EMBEDDINGS_ENABLED"
-    )
-    memory_embedding_model: str = Field(
-        default="text-embedding-3-small", alias="MEMORY_EMBEDDING_MODEL"
-    )
-    memory_embedding_dimensions: int = Field(
-        default=1536, alias="MEMORY_EMBEDDING_DIMENSIONS", ge=256, le=3072
-    )
-    memory_extraction_provider: str = Field(
-        default="openai", alias="MEMORY_EXTRACTION_PROVIDER"
-    )
-    memory_extraction_model: str = Field(
-        default="gpt-5.6-luna", alias="MEMORY_EXTRACTION_MODEL"
-    )
-    memory_extraction_reasoning_effort: ReasoningEffortSetting = Field(
-        default="low", alias="MEMORY_EXTRACTION_REASONING_EFFORT"
-    )
-    memory_extraction_max_tokens: int = Field(
-        default=1800, alias="MEMORY_EXTRACTION_MAX_TOKENS", ge=256, le=8192
-    )
-    memory_compaction_message_threshold: int = Field(
-        default=12, alias="MEMORY_COMPACTION_MESSAGE_THRESHOLD", ge=4, le=100
-    )
-    memory_compaction_batch_size: int = Field(
-        default=40, alias="MEMORY_COMPACTION_BATCH_SIZE", ge=4, le=200
-    )
-    memory_retrieval_limit: int = Field(
-        default=8, alias="MEMORY_RETRIEVAL_LIMIT", ge=1, le=30
-    )
-    memory_retrieval_candidate_limit: int = Field(
-        default=200, alias="MEMORY_RETRIEVAL_CANDIDATE_LIMIT", ge=20, le=1000
-    )
-    memory_worker_poll_seconds: float = Field(
-        default=2.0, alias="MEMORY_WORKER_POLL_SECONDS", ge=0.5, le=60
-    )
-    memory_worker_max_attempts: int = Field(
-        default=5, alias="MEMORY_WORKER_MAX_ATTEMPTS", ge=1, le=20
-    )
-    memory_worker_retry_base_seconds: int = Field(
-        default=15, alias="MEMORY_WORKER_RETRY_BASE_SECONDS", ge=1, le=3600
-    )
-    memory_worker_lock_timeout_seconds: int = Field(
-        default=300, alias="MEMORY_WORKER_LOCK_TIMEOUT_SECONDS", ge=30, le=86400
-    )
-
     conversation_page_size_max: int = Field(
         default=100, alias="CONVERSATION_PAGE_SIZE_MAX", ge=10, le=500
+    )
+    platform_system_prompt: str = Field(
+        default="You are Astra AI. Follow the active character and persona context without inventing actions or dialogue for the user.",
+        alias="PLATFORM_SYSTEM_PROMPT",
+    )
+    memory_context_limit: int = Field(
+        default=12, alias="MEMORY_CONTEXT_LIMIT", ge=0, le=100
+    )
+    memory_min_importance: float = Field(
+        default=0.2, alias="MEMORY_MIN_IMPORTANCE", ge=0, le=1
+    )
+    rag_chunk_size_chars: int = Field(
+        default=1800, alias="RAG_CHUNK_SIZE_CHARS", ge=256, le=12000
+    )
+    rag_chunk_overlap_chars: int = Field(
+        default=240, alias="RAG_CHUNK_OVERLAP_CHARS", ge=0, le=4000
+    )
+    rag_default_top_k: int = Field(
+        default=5, alias="RAG_DEFAULT_TOP_K", ge=1, le=50
+    )
+    tool_execution_timeout_seconds: float = Field(
+        default=15.0, alias="TOOL_EXECUTION_TIMEOUT_SECONDS", gt=0, le=120
     )
 
     @model_validator(mode="after")
@@ -210,19 +128,8 @@ class AppConfig(BaseSettings):
                     "JWT_SECRET_KEY must be a strong, non-development "
                     "secret in production."
                 )
-        if (
-            self.memory_compaction_batch_size
-            < self.memory_compaction_message_threshold
-        ):
-            raise ValueError(
-                "MEMORY_COMPACTION_BATCH_SIZE must be greater than or equal to "
-                "MEMORY_COMPACTION_MESSAGE_THRESHOLD."
-            )
-        if self.memory_retrieval_candidate_limit < self.memory_retrieval_limit:
-            raise ValueError(
-                "MEMORY_RETRIEVAL_CANDIDATE_LIMIT must be greater than or equal "
-                "to MEMORY_RETRIEVAL_LIMIT."
-            )
+        if self.rag_chunk_overlap_chars >= self.rag_chunk_size_chars:
+            raise ValueError("RAG_CHUNK_OVERLAP_CHARS must be smaller than RAG_CHUNK_SIZE_CHARS.")
         return self
 
     @property

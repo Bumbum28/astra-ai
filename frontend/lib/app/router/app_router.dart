@@ -4,10 +4,11 @@ import 'package:astra_ai/features/auth/application/auth_controller.dart';
 import 'package:astra_ai/features/auth/presentation/pages/login_page.dart';
 import 'package:astra_ai/features/auth/presentation/pages/register_page.dart';
 import 'package:astra_ai/features/auth/presentation/pages/splash_page.dart';
-import 'package:astra_ai/features/characters/presentation/pages/characters_page.dart';
 import 'package:astra_ai/features/chat/presentation/pages/chat_page.dart';
 import 'package:astra_ai/features/home/presentation/home_page.dart';
+import 'package:astra_ai/features/knowledge/presentation/knowledge_page.dart';
 import 'package:astra_ai/features/profile/presentation/profile_page.dart';
+import 'package:astra_ai/features/roleplay/presentation/roleplay_context_page.dart';
 import 'package:astra_ai/features/settings/presentation/settings_page.dart';
 import 'package:astra_ai/shared/layout/app_shell.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.characters,
-            builder: (context, state) => const CharactersPage(),
+            builder: (context, state) => const RoleplayContextPage(),
+          ),
+          GoRoute(
+            path: RoutePaths.knowledge,
+            builder: (context, state) => const KnowledgePage(),
           ),
           GoRoute(
             path: RoutePaths.profile,

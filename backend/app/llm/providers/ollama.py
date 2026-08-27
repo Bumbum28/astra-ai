@@ -14,6 +14,7 @@ from app.llm.contracts import (
     LLMModelInfo,
     LLMRequest,
     LLMResponse,
+    LLMToolCall,
     LLMUsage,
 )
 
@@ -59,11 +60,44 @@ class OllamaProvider(BaseLLMProvider):
                     "role": message.role.value,
                     "content": message.content,
                     **({"name": message.name} if message.name else {}),
+                    **(
+                        {"tool_call_id": message.tool_call_id}
+                        if message.tool_call_id
+                        else {}
+                    ),
+                    **(
+                        {
+                            "tool_calls": [
+                                {
+                                    "id": call.id,
+                                    "function": {
+                                        "name": call.name,
+                                        "arguments": call.arguments,
+                                    },
+                                }
+                                for call in message.tool_calls
+                            ]
+                        }
+                        if message.tool_calls
+                        else {}
+                    ),
                 }
                 for message in request.messages
             ],
             "stream": stream,
         }
+        if request.tools:
+            payload["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.input_schema,
+                    },
+                }
+                for tool in request.tools
+            ]
         if options:
             payload["options"] = options
         return payload
@@ -82,6 +116,17 @@ class OllamaProvider(BaseLLMProvider):
             ) from exc
 
         message = data.get("message") or {}
+        tool_calls: list[LLMToolCall] = []
+        for index, item in enumerate(message.get("tool_calls") or []):
+            function = item.get("function") or {}
+            arguments = function.get("arguments")
+            tool_calls.append(
+                LLMToolCall(
+                    id=str(item.get("id") or f"ollama-tool-{index}"),
+                    name=str(function.get("name") or ""),
+                    arguments=arguments if isinstance(arguments, dict) else {},
+                )
+            )
         input_tokens = data.get("prompt_eval_count")
         output_tokens = data.get("eval_count")
         total_tokens = None
@@ -93,6 +138,7 @@ class OllamaProvider(BaseLLMProvider):
             model=str(data.get("model") or payload["model"]),
             provider=self.provider_name,
             finish_reason=str(data.get("done_reason") or "stop"),
+            tool_calls=tool_calls,
             usage=LLMUsage(
                 input_tokens=input_tokens if isinstance(input_tokens, int) else None,
                 output_tokens=(

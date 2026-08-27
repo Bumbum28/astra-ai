@@ -1,12 +1,14 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import suppress
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 from uuid import UUID, uuid4
 
 from app.common.constants.error_codes import ErrorCode
+from app.context.assembler import ContextAssembler
+from app.context.contracts import ContextAssemblyRequest
 from app.common.exceptions import (
     AppException,
     ConflictException,
@@ -15,7 +17,6 @@ from app.common.exceptions import (
 )
 from app.core.config import AppConfig
 from app.core.unit_of_work import UnitOfWorkFactory
-from app.domains.chat.language_guard import VietnameseOutputGuard
 from app.domains.chat.schemas import (
     ChatStreamCompleted,
     ChatStreamDelta,
@@ -24,38 +25,19 @@ from app.domains.chat.schemas import (
 )
 from app.domains.chat.sse import encode_sse
 from app.domains.conversations.model import Conversation
-from app.domains.intelligence.service import IntelligencePipeline
 from app.domains.messages.model import (
     Message,
     MessageContentType,
     MessageRole,
     MessageStatus,
 )
-from app.domains.memories.model import MemoryTask, MemoryTaskStatus
-from app.domains.memories.retrieval import MemoryRetrievalService
 from app.domains.messages.schemas import (
     ChatExchangeResponse,
     MessageResponse,
     MessageSendRequest,
 )
-from app.domains.prompts.composer import StructuredPromptComposer
-from app.domains.prompts.contracts import (
-    PromptComposer,
-    PromptContextResolver,
-    RoleplayPromptContext,
-)
-from app.domains.prompts.service import RoleplayPromptContextResolver
-from app.domains.prompts.token_budget import PromptTokenBudgeter
-from app.embeddings.service import EmbeddingService
 from app.llm.chat.service import ChatService as LLMChatService
-from app.llm.contracts import (
-    LLMChunk,
-    LLMMessage,
-    LLMMessageRole,
-    LLMRequest,
-    LLMResponse,
-)
-from app.llm.contracts.request import ReasoningEffort
+from app.llm.contracts import LLMChunk, LLMMessage, LLMMessageRole, LLMRequest
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,28 +62,12 @@ class ChatApplicationService:
         uow_factory: UnitOfWorkFactory,
         llm_service: LLMChatService,
         config: AppConfig,
-        prompt_context_resolver: PromptContextResolver | None = None,
-        prompt_composer: PromptComposer | None = None,
-        language_guard: VietnameseOutputGuard | None = None,
-        intelligence_pipeline: IntelligencePipeline | None = None,
-        token_budgeter: PromptTokenBudgeter | None = None,
-        embedding_service: EmbeddingService | None = None,
-        memory_retrieval: MemoryRetrievalService | None = None,
+        context_assembler: ContextAssembler,
     ) -> None:
         self._uow_factory = uow_factory
         self._llm_service = llm_service
         self._config = config
-        self._prompt_context_resolver = (
-            prompt_context_resolver or RoleplayPromptContextResolver()
-        )
-        self._prompt_composer = prompt_composer or StructuredPromptComposer()
-        self._language_guard = language_guard or VietnameseOutputGuard()
-        self._intelligence = intelligence_pipeline or IntelligencePipeline(
-            llm_service, config
-        )
-        self._token_budgeter = token_budgeter or PromptTokenBudgeter()
-        self._embeddings = embedding_service or EmbeddingService(None)
-        self._memory_retrieval = memory_retrieval or MemoryRetrievalService(config)
+        self._context_assembler = context_assembler
 
     async def send_message(
         self,
@@ -124,7 +90,10 @@ class ChatApplicationService:
             )
 
         try:
-            response = await self._generate_with_language_guard(prepared)
+            response = await self._llm_service.generate(
+                prepared.provider,
+                prepared.llm_request,
+            )
         except asyncio.CancelledError as exc:
             await asyncio.shield(
                 self._finalize_failure(prepared.assistant_message.id, "", exc)
@@ -144,7 +113,6 @@ class ChatApplicationService:
                 else None
             ),
             metadata={
-                **response.metadata,
                 "provider": response.provider,
                 "model": response.model,
                 "finish_reason": response.finish_reason,
@@ -154,76 +122,6 @@ class ChatApplicationService:
             user_message=prepared.user_message,
             assistant_message=assistant,
             reused=prepared.reused,
-        )
-
-    async def _generate_with_language_guard(
-        self,
-        prepared: PreparedExchange,
-    ) -> LLMResponse:
-        intelligence_result = await self._intelligence.generate(
-            prepared.provider,
-            prepared.llm_request,
-        )
-        first_response = intelligence_result.response
-        if not self._language_guard.contains_forbidden_script(
-            first_response.content
-        ):
-            return first_response
-
-        strict_retry_instruction = LLMMessage(
-            role=LLMMessageRole.SYSTEM,
-            content=(
-                "The previous generation violated the language policy. Regenerate "
-                "the answer from scratch using Vietnamese only. Preserve the "
-                "current user-writing-style mode already specified in the system "
-                "prompt: use full standard Vietnamese for a standard user message, "
-                "or mirror moderate teencode only when the latest user message uses "
-                "it. Do not output Chinese characters, pinyin, or a translation "
-                "section."
-            ),
-        )
-        retry_request = prepared.llm_request.model_copy(
-            update={
-                "messages": [
-                    strict_retry_instruction,
-                    *prepared.llm_request.messages,
-                ],
-                "temperature": min(
-                    prepared.llm_request.temperature
-                    if prepared.llm_request.temperature is not None
-                    else 0.3,
-                    0.3,
-                ),
-            }
-        )
-        try:
-            retry_response = await self._llm_service.generate(
-                prepared.provider,
-                retry_request,
-            )
-        except Exception:
-            guarded = self._language_guard.sanitize(first_response.content)
-            return first_response.model_copy(
-                update={
-                    "content": guarded.content,
-                    "metadata": {
-                        **first_response.metadata,
-                        "language_guard_triggered": True,
-                        "language_guard_retry_failed": True,
-                    },
-                }
-            )
-
-        guarded = self._language_guard.sanitize(retry_response.content)
-        return retry_response.model_copy(
-            update={
-                "content": guarded.content,
-                "metadata": {
-                    **retry_response.metadata,
-                    "language_guard_triggered": True,
-                    "language_guard_sanitized": guarded.changed,
-                },
-            }
         )
 
     async def start_stream(
@@ -239,10 +137,6 @@ class ChatApplicationService:
             request,
             streaming=True,
         )
-        if self._config.intelligence_enabled:
-            return PreparedChatStream(
-                events=self._intelligent_stream_events(prepared)
-            )
         chunks = (
             self._llm_service.stream(prepared.provider, prepared.llm_request)
             if prepared.needs_generation
@@ -262,13 +156,6 @@ class ChatApplicationService:
             raise ValidationException(
                 f"Message exceeds {self._config.chat_max_message_length} characters."
             )
-
-        query_embedding = None
-        if self._config.memory_enabled and self._embeddings.enabled:
-            try:
-                query_embedding = await self._embeddings.embed_one(request.content)
-            except Exception:
-                query_embedding = None
 
         async with self._uow_factory() as uow:
             conversation = await uow.conversations.get_owned(
@@ -345,15 +232,8 @@ class ChatApplicationService:
                     await uow.messages.add(assistant_message)
                 elif assistant_message.status == MessageStatus.COMPLETED:
                     await uow.flush()
-                    return self._build_prepared(
-                        conversation,
-                        user_message,
-                        assistant_message,
-                        request,
-                        context_messages=[],
-                        prompt_context=RoleplayPromptContext(),
-                        needs_generation=False,
-                        reused=True,
+                    return self._build_reused_prepared(
+                        conversation, user_message, assistant_message, request
                     )
                 elif assistant_message.status in {
                     MessageStatus.PENDING,
@@ -385,107 +265,87 @@ class ChatApplicationService:
                     limit=self._config.chat_context_message_limit,
                 )
             )
-            prompt_context = await self._prompt_context_resolver.resolve(
-                uow,
-                conversation,
+            assembled = await self._context_assembler.assemble(
+                ContextAssemblyRequest(
+                    user_id=user_id,
+                    conversation=conversation,
+                    history=context_messages,
+                )
             )
-            memory_context = await self._memory_retrieval.retrieve(
-                uow,
-                conversation,
-                user_id,
-                request.content,
-                query_embedding,
-            )
-            prompt_context = replace(prompt_context, memory=memory_context)
-            prepared = self._build_prepared(
+            prepared = self._build_prepared_from_context(
                 conversation,
                 user_message,
                 assistant_message,
                 request,
-                context_messages=context_messages,
-                prompt_context=prompt_context,
+                assembled.messages,
+                memory_ids=assembled.memory_ids,
                 needs_generation=True,
                 reused=reused,
             )
             await uow.commit()
             return prepared
 
-    def _build_prepared(
+    def _build_reused_prepared(
         self,
         conversation: Conversation,
         user_message: Message,
         assistant_message: Message,
         request: MessageSendRequest,
+    ) -> PreparedExchange:
+        return self._build_prepared_from_context(
+            conversation,
+            user_message,
+            assistant_message,
+            request,
+            messages=[],
+            memory_ids=(),
+            needs_generation=False,
+            reused=True,
+        )
+
+    def _build_prepared_from_context(
+        self,
+        conversation: Conversation,
+        user_message: Message,
+        assistant_message: Message,
+        request: MessageSendRequest,
+        messages: list[LLMMessage],
         *,
-        context_messages: list[Message],
-        prompt_context: RoleplayPromptContext,
+        memory_ids: tuple[UUID, ...],
         needs_generation: bool,
         reused: bool,
     ) -> PreparedExchange:
         provider = conversation.provider or self._config.default_llm_provider
-        messages = self._prompt_composer.compose(
-            prompt_context,
-            conversation.system_prompt,
-            user_message.content,
-        )
-        messages.extend(
-            LLMMessage(
-                role=LLMMessageRole(item.role.value),
-                content=item.content,
-            )
-            for item in context_messages
-        )
-        if not context_messages or context_messages[-1].id != user_message.id:
-            messages.append(
-                LLMMessage(role=LLMMessageRole.USER, content=user_message.content)
-            )
-        budget = self._token_budgeter.trim(
-            messages,
-            token_budget=self._config.chat_context_token_budget,
-        )
-
+        llm_messages = messages
+        if needs_generation and not llm_messages:
+            raise RuntimeError("Context assembler returned no messages for generation.")
         return PreparedExchange(
             conversation_id=conversation.id,
             provider=provider,
             llm_request=LLMRequest(
-                messages=budget.messages,
+                messages=llm_messages or [
+                    LLMMessage(role=LLMMessageRole.USER, content=user_message.content)
+                ],
                 model=conversation.model or self._config.default_llm_model,
                 temperature=(
                     request.temperature
                     if request.temperature is not None
-                    else conversation.temperature
-                    if conversation.temperature is not None
                     else self._config.chat_default_temperature
                 ),
                 max_tokens=(
                     request.max_tokens
                     if request.max_tokens is not None
-                    else conversation.max_tokens
-                    if conversation.max_tokens is not None
                     else self._config.chat_default_max_tokens
                 ),
-                reasoning_effort=cast(
-                    ReasoningEffort, self._config.openai_reasoning_effort
-                ),
-                store=False,
                 metadata={
-                    "context_token_budget": self._config.chat_context_token_budget,
-                    "context_estimated_tokens": budget.estimated_tokens,
-                    "context_dropped_messages": budget.dropped_messages,
-                    "context_truncated_system_messages": (
-                        budget.truncated_system_messages
-                    ),
                     "conversation_id": str(conversation.id),
-                    "character_id": (
-                        str(conversation.character_id)
-                        if conversation.character_id is not None
-                        else None
-                    ),
-                    "persona_id": (
-                        str(conversation.persona_id)
-                        if conversation.persona_id is not None
-                        else None
-                    ),
+                    "character_id": str(conversation.character_id)
+                    if conversation.character_id
+                    else None,
+                    "persona_id": str(conversation.persona_id)
+                    if conversation.persona_id
+                    else None,
+                    "memory_ids": [str(item) for item in memory_ids],
                 },
             ),
             user_message=MessageResponse.model_validate(user_message),
@@ -493,76 +353,6 @@ class ChatApplicationService:
             needs_generation=needs_generation,
             reused=reused,
         )
-
-    async def _intelligent_stream_events(
-        self,
-        prepared: PreparedExchange,
-    ) -> AsyncIterator[str]:
-        started = ChatStreamStarted(
-            user_message=prepared.user_message,
-            assistant_message=prepared.assistant_message,
-            reused=prepared.reused,
-        )
-        yield encode_sse("message.created", started.model_dump(mode="json"))
-
-        if not prepared.needs_generation:
-            completed = ChatStreamCompleted(message=prepared.assistant_message)
-            yield encode_sse("message.completed", completed.model_dump(mode="json"))
-            return
-
-        try:
-            response = await self._generate_with_language_guard(prepared)
-            for content in self._display_chunks(response.content):
-                delta = ChatStreamDelta(
-                    message_id=prepared.assistant_message.id,
-                    delta=content,
-                )
-                yield encode_sse("message.delta", delta.model_dump(mode="json"))
-            assistant = await self._finalize_success(
-                prepared.assistant_message.id,
-                response.content,
-                provider_response_id=response.provider_response_id,
-                token_usage=(
-                    response.usage.model_dump(exclude_none=True)
-                    if response.usage is not None
-                    else None
-                ),
-                metadata={
-                    **response.metadata,
-                    "provider": response.provider,
-                    "model": response.model,
-                    "finish_reason": response.finish_reason,
-                },
-            )
-            completed = ChatStreamCompleted(message=assistant)
-            yield encode_sse("message.completed", completed.model_dump(mode="json"))
-        except asyncio.CancelledError as exc:
-            await asyncio.shield(
-                self._finalize_failure(prepared.assistant_message.id, "", exc)
-            )
-            raise
-        except Exception as exc:
-            await self._finalize_failure(prepared.assistant_message.id, "", exc)
-            error = self._stream_error(prepared.assistant_message.id, exc)
-            yield encode_sse("error", error.model_dump(mode="json"))
-
-    @staticmethod
-    def _display_chunks(content: str, target_size: int = 96) -> list[str]:
-        if not content:
-            return []
-        words = content.split(" ")
-        chunks: list[str] = []
-        current = ""
-        for word in words:
-            candidate = word if not current else f"{current} {word}"
-            if current and len(candidate) > target_size:
-                chunks.append(current + " ")
-                current = word
-            else:
-                current = candidate
-        if current:
-            chunks.append(current)
-        return chunks
 
     async def _stream_events(
         self,
@@ -582,7 +372,6 @@ class ChatApplicationService:
             return
 
         content_parts: list[str] = []
-        language_guard_triggered = False
         provider_response_id: str | None = None
         finish_reason: str | None = None
         try:
@@ -598,40 +387,22 @@ class ChatApplicationService:
                 finish_reason = chunk.finish_reason or finish_reason
                 if not chunk.content:
                     continue
-                guarded_chunk = self._language_guard.sanitize_fragment(
-                    chunk.content
-                )
-                language_guard_triggered = (
-                    language_guard_triggered or guarded_chunk.changed
-                )
-                if not guarded_chunk.content:
-                    continue
-                content_parts.append(guarded_chunk.content)
+                content_parts.append(chunk.content)
                 delta = ChatStreamDelta(
                     message_id=prepared.assistant_message.id,
-                    delta=guarded_chunk.content,
-                )
-                yield encode_sse("message.delta", delta.model_dump(mode="json"))
-
-            final_content = "".join(content_parts).strip()
-            if language_guard_triggered and not final_content:
-                final_content = self._language_guard.fallback_message
-                delta = ChatStreamDelta(
-                    message_id=prepared.assistant_message.id,
-                    delta=final_content,
+                    delta=chunk.content,
                 )
                 yield encode_sse("message.delta", delta.model_dump(mode="json"))
 
             assistant = await self._finalize_success(
                 prepared.assistant_message.id,
-                final_content,
+                "".join(content_parts),
                 provider_response_id=provider_response_id,
                 token_usage=None,
                 metadata={
                     "provider": prepared.provider,
                     "model": prepared.llm_request.model,
                     "finish_reason": finish_reason,
-                    "language_guard_triggered": language_guard_triggered,
                 },
             )
             completed = ChatStreamCompleted(message=assistant)
@@ -715,33 +486,6 @@ class ChatApplicationService:
             )
             if conversation is not None:
                 conversation.last_message_at = datetime.now(UTC)
-            relationship = await uow.relationships.get_by_conversation(
-                assistant.conversation_id,
-                for_update=True,
-            )
-            if relationship is not None:
-                relationship.turn_count += 1
-            if self._config.memory_enabled:
-                completed_count = await uow.messages.count_completed(
-                    assistant.conversation_id
-                )
-                threshold = self._config.memory_compaction_message_threshold
-                if completed_count >= threshold and completed_count % threshold == 0:
-                    existing_task = await uow.memory_tasks.get_by_trigger_message(
-                        assistant.id
-                    )
-                    if existing_task is None:
-                        await uow.memory_tasks.add(
-                            MemoryTask(
-                                id=uuid4(),
-                                conversation_id=assistant.conversation_id,
-                                trigger_message_id=assistant.id,
-                                status=MemoryTaskStatus.PENDING,
-                                attempts=0,
-                                available_at=datetime.now(UTC),
-                                task_metadata={"forced": False},
-                            )
-                        )
             await uow.flush()
             response = MessageResponse.model_validate(assistant)
             await uow.commit()
