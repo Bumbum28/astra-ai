@@ -60,7 +60,7 @@ class OpenAIProvider(BaseLLMProvider):
         choice = response.choices[0]
         usage = response.usage
         tool_calls: list[LLMToolCall] = []
-        for item in choice.message.tool_calls or []:
+        for item in getattr(choice.message, "tool_calls", None) or []:
             try:
                 arguments = json.loads(item.function.arguments or "{}")
             except json.JSONDecodeError:
