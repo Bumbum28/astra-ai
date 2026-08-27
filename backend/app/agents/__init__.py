@@ -1,6 +1,5 @@
-"""Agent runtime and persistence for Astra AI."""
+"""Agent runtime and persistence for Astra AI.
 
-from app.agents.runtime import AgentRuntime
-from app.agents.service import AgentChatService, AgentQueryService
-
-__all__ = ["AgentChatService", "AgentQueryService", "AgentRuntime"]
+Concrete agent services are imported from their modules directly to keep package import
+side effects minimal and avoid a UnitOfWork import cycle.
+"""
