@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.llm.contracts.tool import LLMToolCall
+
 
 class LLMUsage(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -20,6 +22,7 @@ class LLMResponse(BaseModel):
     finish_reason: str | None = None
     usage: LLMUsage | None = None
     provider_response_id: str | None = None
+    tool_calls: list[LLMToolCall] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

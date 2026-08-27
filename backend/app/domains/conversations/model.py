@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, text
+from sqlalchemy import DateTime, ForeignKey, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,28 +19,16 @@ class Conversation(BaseEntity):
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     character_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("characters.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    character_version_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("character_versions.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
     )
     persona_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    persona_version_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("persona_versions.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    model: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    temperature: Mapped[float | None] = mapped_column(Float, nullable=True)
-    max_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_message_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )

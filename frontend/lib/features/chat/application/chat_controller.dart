@@ -54,7 +54,7 @@ class ChatController extends AsyncNotifier<ChatState> {
   }
 
   Future<void> loadOlder() async {
-    final current = state.value;
+    final current = state.asData?.value;
     if (current == null ||
         current.isLoadingOlder ||
         current.nextCursor == null) {
@@ -83,7 +83,7 @@ class ChatController extends AsyncNotifier<ChatState> {
   }
 
   Future<void> retry(ChatMessage failedAssistant) async {
-    final current = state.value;
+    final current = state.asData?.value;
     if (current == null || failedAssistant.parentMessageId == null) {
       return;
     }
@@ -108,7 +108,7 @@ class ChatController extends AsyncNotifier<ChatState> {
     required String clientMessageId,
   }) async {
     final normalized = content.trim();
-    final current = state.value;
+    final current = state.asData?.value;
     if (normalized.isEmpty || current == null || current.isSending) {
       return;
     }
@@ -147,7 +147,7 @@ class ChatController extends AsyncNotifier<ChatState> {
         ),
       );
     } finally {
-      final latest = state.value;
+      final latest = state.asData?.value;
       if (latest != null) {
         state = AsyncData(latest.copyWith(isSending: false));
       }
@@ -155,7 +155,7 @@ class ChatController extends AsyncNotifier<ChatState> {
   }
 
   void _recordStreamFailure(AppException error) {
-    final latest = state.value;
+    final latest = state.asData?.value;
     if (latest == null) {
       return;
     }
@@ -176,7 +176,7 @@ class ChatController extends AsyncNotifier<ChatState> {
   }
 
   void _applyEvent(ChatStreamEvent event) {
-    final current = state.value;
+    final current = state.asData?.value;
     if (current == null) {
       return;
     }

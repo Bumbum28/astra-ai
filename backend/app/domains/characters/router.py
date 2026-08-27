@@ -1,14 +1,14 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.common.responses import ApiResponse
 from app.domains.auth.dependencies import get_current_user
 from app.domains.characters.dependencies import get_character_service
 from app.domains.characters.schemas import (
     CharacterCreateRequest,
-    CharacterPageResponse,
+    CharacterListResponse,
     CharacterResponse,
     CharacterUpdateRequest,
 )
@@ -18,11 +18,7 @@ from app.domains.users.schemas import UserResponse
 router = APIRouter(prefix="/characters", tags=["Characters"])
 
 
-@router.post(
-    "",
-    response_model=ApiResponse[CharacterResponse],
-    status_code=status.HTTP_201_CREATED,
-)
+@router.post("", response_model=ApiResponse[CharacterResponse], status_code=201)
 async def create_character(
     request: CharacterCreateRequest,
     current_user: Annotated[UserResponse, Depends(get_current_user)],
@@ -33,15 +29,13 @@ async def create_character(
     )
 
 
-@router.get("", response_model=ApiResponse[CharacterPageResponse])
+@router.get("", response_model=ApiResponse[CharacterListResponse])
 async def list_characters(
     current_user: Annotated[UserResponse, Depends(get_current_user)],
     service: Annotated[CharacterService, Depends(get_character_service)],
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    cursor: str | None = None,
-) -> ApiResponse[CharacterPageResponse]:
-    return ApiResponse[CharacterPageResponse].ok(
-        await service.list_for_user(current_user.id, limit=limit, cursor=cursor)
+) -> ApiResponse[CharacterListResponse]:
+    return ApiResponse[CharacterListResponse].ok(
+        await service.list_for_user(current_user.id)
     )
 
 

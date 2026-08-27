@@ -35,6 +35,12 @@ const appDestinations = <AppDestination>[
     selectedIcon: Icons.groups,
   ),
   AppDestination(
+    label: 'Kiến thức',
+    route: RoutePaths.knowledge,
+    icon: Icons.library_books_outlined,
+    selectedIcon: Icons.library_books,
+  ),
+  AppDestination(
     label: 'Hồ sơ',
     route: RoutePaths.profile,
     icon: Icons.person_outline,

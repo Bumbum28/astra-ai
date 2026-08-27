@@ -7,6 +7,7 @@ abstract final class RoutePaths {
 
   static String chat(String conversationId) => '$chats/$conversationId';
   static const characters = '/characters';
+  static const knowledge = '/knowledge';
   static const profile = '/profile';
   static const settings = '/settings';
 }

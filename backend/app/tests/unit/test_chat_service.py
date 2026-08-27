@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.common.constants.error_codes import ErrorCode
+from app.context.assembler import ConversationContextAssembler
 from app.common.exceptions import ConflictException
 from app.core.config import AppConfig
 from app.domains.chat.service import ChatApplicationService
@@ -54,14 +55,18 @@ async def test_chat_service_persists_exchange_and_reuses_client_id() -> None:
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
-        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
         user_id,
         ConversationCreateRequest(),
     )
-    service = ChatApplicationService(uow_factory, FakeLLMChatService(), config)
+    service = ChatApplicationService(
+        uow_factory,
+        FakeLLMChatService(),
+        config,
+        ConversationContextAssembler(uow_factory, config),
+    )
     client_message_id = uuid4()
     request = MessageSendRequest(
         content="Chào Astra",
@@ -84,14 +89,18 @@ async def test_chat_service_streams_sse_and_finalizes_message() -> None:
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
-        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
         user_id,
         ConversationCreateRequest(),
     )
-    service = ChatApplicationService(uow_factory, FakeLLMChatService(), config)
+    service = ChatApplicationService(
+        uow_factory,
+        FakeLLMChatService(),
+        config,
+        ConversationContextAssembler(uow_factory, config),
+    )
 
     stream = await service.start_stream(
         user_id,
@@ -143,7 +152,6 @@ async def test_failed_stream_can_retry_with_the_same_client_message_id() -> None
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
-        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
@@ -151,7 +159,9 @@ async def test_failed_stream_can_retry_with_the_same_client_message_id() -> None
         ConversationCreateRequest(),
     )
     llm = ToggleStreamingLLMService(fail=True)
-    service = ChatApplicationService(uow_factory, llm, config)
+    service = ChatApplicationService(
+        uow_factory, llm, config, ConversationContextAssembler(uow_factory, config)
+    )
     request = MessageSendRequest(content="Thử lại", client_message_id=uuid4())
 
     failed_stream = await service.start_stream(user_id, conversation.id, request)
@@ -182,14 +192,18 @@ async def test_duplicate_request_is_rejected_while_stream_is_in_progress() -> No
     config = AppConfig(
         default_llm_provider="ollama",
         default_llm_model="roleplay-engine",
-        intelligence_enabled=False,
     )
     user_id = uuid4()
     conversation = await ConversationService(uow_factory, config).create(
         user_id,
         ConversationCreateRequest(),
     )
-    service = ChatApplicationService(uow_factory, FakeLLMChatService(), config)
+    service = ChatApplicationService(
+        uow_factory,
+        FakeLLMChatService(),
+        config,
+        ConversationContextAssembler(uow_factory, config),
+    )
     request = MessageSendRequest(content="Đang xử lý", client_message_id=uuid4())
 
     await service.start_stream(user_id, conversation.id, request)
