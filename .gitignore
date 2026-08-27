@@ -32,3 +32,14 @@ frontend/ios/Flutter/ephemeral/
 frontend/macos/Flutter/ephemeral/
 frontend/linux/flutter/ephemeral/
 frontend/windows/flutter/ephemeral/
+
+# Local database / migration backups
+*.dump
+migration_backup/
+
+# Local archives / release artifacts
+*.zip
+
+# Temporary files
+*.tmp
+*.bak
