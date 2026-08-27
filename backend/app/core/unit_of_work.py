@@ -4,6 +4,7 @@ from typing import Protocol, Self
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.agents.repository import AgentRepository, SQLAlchemyAgentRepository
 from app.common.exceptions import ConflictException
 from app.domains.auth.repository import (
     RefreshSessionRepository,
@@ -28,6 +29,9 @@ from app.domains.users.repository import SQLAlchemyUserRepository, UserRepositor
 
 
 class UnitOfWork(Protocol):
+    @property
+    def agents(self) -> AgentRepository: ...
+
     @property
     def users(self) -> UserRepository: ...
 
@@ -73,6 +77,7 @@ class UnitOfWorkFactory(Protocol):
 
 
 class SQLAlchemyUnitOfWork:
+    agents: AgentRepository
     users: UserRepository
     refresh_sessions: RefreshSessionRepository
     conversations: ConversationRepository
@@ -95,6 +100,7 @@ class SQLAlchemyUnitOfWork:
 
     async def __aenter__(self) -> Self:
         self._session = self._session_factory()
+        self.agents = SQLAlchemyAgentRepository(self._session)
         self.users = SQLAlchemyUserRepository(self._session)
         self.refresh_sessions = SQLAlchemyRefreshSessionRepository(self._session)
         self.conversations = SQLAlchemyConversationRepository(self._session)

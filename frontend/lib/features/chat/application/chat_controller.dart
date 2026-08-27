@@ -1,6 +1,7 @@
 import 'package:astra_ai/core/errors/app_exception.dart';
 import 'package:astra_ai/features/chat/application/conversation_list_controller.dart';
 import 'package:astra_ai/features/chat/data/chat_providers.dart';
+import 'package:astra_ai/features/chat/domain/entities/chat_execution_mode.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_message.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_stream_event.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ class ChatState {
     this.nextCursor,
     this.isLoadingOlder = false,
     this.isSending = false,
+    this.executionMode = ChatExecutionMode.direct,
     this.streamError,
   });
 
@@ -19,6 +21,7 @@ class ChatState {
   final String? nextCursor;
   final bool isLoadingOlder;
   final bool isSending;
+  final ChatExecutionMode executionMode;
   final AppException? streamError;
 
   ChatState copyWith({
@@ -27,6 +30,7 @@ class ChatState {
     bool clearNextCursor = false,
     bool? isLoadingOlder,
     bool? isSending,
+    ChatExecutionMode? executionMode,
     AppException? streamError,
     bool clearStreamError = false,
   }) {
@@ -35,6 +39,7 @@ class ChatState {
       nextCursor: clearNextCursor ? null : nextCursor ?? this.nextCursor,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       isSending: isSending ?? this.isSending,
+      executionMode: executionMode ?? this.executionMode,
       streamError: clearStreamError ? null : streamError ?? this.streamError,
     );
   }
@@ -76,6 +81,14 @@ class ChatController extends AsyncNotifier<ChatState> {
     } on Object catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
     }
+  }
+
+  void setExecutionMode(ChatExecutionMode mode) {
+    final current = state.asData?.value;
+    if (current == null || current.isSending || current.executionMode == mode) {
+      return;
+    }
+    state = AsyncData(current.copyWith(executionMode: mode));
   }
 
   Future<void> send(String content) async {
@@ -124,6 +137,7 @@ class ChatController extends AsyncNotifier<ChatState> {
                 conversationId: _conversationId,
                 content: normalized,
                 clientMessageId: clientMessageId,
+                executionMode: current.executionMode,
               )) {
         _applyEvent(event);
         receivedTerminalEvent =

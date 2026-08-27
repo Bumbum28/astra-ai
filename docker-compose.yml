@@ -9,7 +9,7 @@ services:
     environment: &backend-environment
       APP_NAME: ${APP_NAME:-Astra AI Platform}
       APP_ENV: ${APP_ENV:-development}
-      APP_VERSION: ${APP_VERSION:-0.6.0}
+      APP_VERSION: ${APP_VERSION:-0.7.0}
       DEBUG: ${DEBUG:-false}
       API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8080","http://127.0.0.1:8080"]}
@@ -58,6 +58,11 @@ services:
       RAG_CHUNK_OVERLAP_CHARS: ${RAG_CHUNK_OVERLAP_CHARS:-240}
       RAG_DEFAULT_TOP_K: ${RAG_DEFAULT_TOP_K:-5}
       TOOL_EXECUTION_TIMEOUT_SECONDS: ${TOOL_EXECUTION_TIMEOUT_SECONDS:-15}
+      AGENT_MAX_STEPS: ${AGENT_MAX_STEPS:-6}
+      AGENT_MAX_TOOL_CALLS: ${AGENT_MAX_TOOL_CALLS:-8}
+      AGENT_TIMEOUT_SECONDS: ${AGENT_TIMEOUT_SECONDS:-90}
+      AGENT_STREAM_CHUNK_CHARS: ${AGENT_STREAM_CHUNK_CHARS:-160}
+      AGENT_DEFAULT_ALLOWED_TOOLS: ${AGENT_DEFAULT_ALLOWED_TOOLS:-["search_knowledge","search_conversation"]}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     ports:
       - "${BACKEND_PORT:-8000}:8000"

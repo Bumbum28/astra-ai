@@ -3,6 +3,8 @@ from types import TracebackType
 from typing import Self
 from uuid import UUID
 
+from app.agents.model import AgentRun, AgentStep
+from app.agents.repository import AgentRepository
 from app.core.unit_of_work import UnitOfWork
 from app.domains.characters.model import Character
 from app.domains.characters.repository import CharacterRepository
@@ -22,6 +24,51 @@ from app.domains.users.model import User
 from app.domains.users.repository import UserRepository
 from app.rag.contracts import RetrievedChunk
 from app.utils.cursors import CursorPosition
+
+
+class FakeAgentRepository:
+    def __init__(self) -> None:
+        self.runs: dict[UUID, AgentRun] = {}
+        self.steps: dict[UUID, AgentStep] = {}
+
+    async def add_run(self, run: AgentRun) -> None:
+        self.runs[run.id] = run
+
+    async def add_step(self, step: AgentStep) -> None:
+        self.steps[step.id] = step
+
+    async def get_run(
+        self, run_id: UUID, *, for_update: bool = False
+    ) -> AgentRun | None:
+        return self.runs.get(run_id)
+
+    async def get_run_owned(
+        self,
+        run_id: UUID,
+        user_id: UUID,
+        *,
+        for_update: bool = False,
+    ) -> AgentRun | None:
+        run = self.runs.get(run_id)
+        return run if run is not None and run.user_id == user_id else None
+
+    async def list_runs(
+        self,
+        user_id: UUID,
+        *,
+        conversation_id: UUID | None = None,
+        limit: int = 50,
+    ) -> list[AgentRun]:
+        runs = [run for run in self.runs.values() if run.user_id == user_id]
+        if conversation_id is not None:
+            runs = [run for run in runs if run.conversation_id == conversation_id]
+        runs.sort(key=lambda run: run.started_at, reverse=True)
+        return runs[:limit]
+
+    async def list_steps(self, run_id: UUID) -> list[AgentStep]:
+        steps = [step for step in self.steps.values() if step.agent_run_id == run_id]
+        steps.sort(key=lambda step: step.step_number)
+        return steps
 
 
 class FakeUserRepository:
@@ -380,6 +427,7 @@ class FakeKnowledgeRepository:
 class FakeUnitOfWork:
     def __init__(
         self,
+        agents: FakeAgentRepository,
         users: FakeUserRepository,
         sessions: FakeRefreshSessionRepository,
         conversations: FakeConversationRepository,
@@ -389,6 +437,7 @@ class FakeUnitOfWork:
         memories: FakeMemoryRepository,
         knowledge: FakeKnowledgeRepository,
     ) -> None:
+        self.agents: AgentRepository = agents
         self.users: UserRepository = users
         self.refresh_sessions: RefreshSessionRepository = sessions
         self.conversations: ConversationRepository = conversations
@@ -413,6 +462,8 @@ class FakeUnitOfWork:
     async def flush(self) -> None:
         now = datetime.now(UTC)
         items: list[object] = [
+            *self.agents.runs.values(),  # type: ignore[attr-defined]
+            *self.agents.steps.values(),  # type: ignore[attr-defined]
             *self.users.items.values(),  # type: ignore[attr-defined]
             *self.conversations.items.values(),  # type: ignore[attr-defined]
             *self.messages.items.values(),  # type: ignore[attr-defined]
@@ -437,6 +488,7 @@ class FakeUnitOfWork:
 
 class FakeUnitOfWorkFactory:
     def __init__(self) -> None:
+        self.agents = FakeAgentRepository()
         self.users = FakeUserRepository()
         self.sessions = FakeRefreshSessionRepository()
         self.conversations = FakeConversationRepository()
@@ -449,6 +501,7 @@ class FakeUnitOfWorkFactory:
 
     def __call__(self) -> UnitOfWork:
         uow = FakeUnitOfWork(
+            self.agents,
             self.users,
             self.sessions,
             self.conversations,

@@ -1,13 +1,18 @@
+import 'package:astra_ai/features/chat/domain/entities/chat_execution_mode.dart';
 import 'package:flutter/material.dart';
 
 class ChatComposer extends StatefulWidget {
   const ChatComposer({
     required this.isSending,
+    required this.executionMode,
+    required this.onExecutionModeChanged,
     required this.onSend,
     super.key,
   });
 
   final bool isSending;
+  final ChatExecutionMode executionMode;
+  final ValueChanged<ChatExecutionMode> onExecutionModeChanged;
   final ValueChanged<String> onSend;
 
   @override
@@ -47,10 +52,28 @@ class _ChatComposerState extends State<ChatComposer> {
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(22),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: <Widget>[
+                  Tooltip(
+                    message: widget.executionMode == ChatExecutionMode.agent
+                        ? 'Agent có thể tự gọi công cụ tìm Knowledge và lịch sử chat.'
+                        : 'Bật Agent để Astra có thể tự gọi công cụ khi cần.',
+                    child: FilterChip(
+                      selected: widget.executionMode == ChatExecutionMode.agent,
+                      onSelected: widget.isSending
+                          ? null
+                          : (selected) => widget.onExecutionModeChanged(
+                              selected
+                                  ? ChatExecutionMode.agent
+                                  : ChatExecutionMode.direct,
+                            ),
+                      avatar: const Icon(Icons.hub_outlined, size: 18),
+                      label: const Text('Agent'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: _controller,
@@ -58,8 +81,11 @@ class _ChatComposerState extends State<ChatComposer> {
                       minLines: 1,
                       maxLines: 6,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'Nhập tin nhắn…',
+                      decoration: InputDecoration(
+                        hintText:
+                            widget.executionMode == ChatExecutionMode.agent
+                            ? 'Giao nhiệm vụ cho Agent…'
+                            : 'Nhập tin nhắn…',
                         border: InputBorder.none,
                       ),
                     ),

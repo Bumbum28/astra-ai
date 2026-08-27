@@ -8,6 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseEntity
 
+
+def _enum_values(enum_type: type[StrEnum]) -> list[str]:
+    """Persist StrEnum values rather than Python member names."""
+    return [member.value for member in enum_type]
+
 if TYPE_CHECKING:
     from app.domains.conversations.model import Conversation
 
@@ -53,15 +58,33 @@ class Message(BaseEntity):
         Uuid, nullable=True, index=True
     )
     role: Mapped[MessageRole] = mapped_column(
-        Enum(MessageRole, native_enum=False, length=20), index=True
+        Enum(
+            MessageRole,
+            native_enum=False,
+            values_callable=_enum_values,
+            validate_strings=True,
+            length=20,
+        ), index=True
     )
     content: Mapped[str] = mapped_column(Text)
     content_type: Mapped[MessageContentType] = mapped_column(
-        Enum(MessageContentType, native_enum=False, length=20),
+        Enum(
+            MessageContentType,
+            native_enum=False,
+            values_callable=_enum_values,
+            validate_strings=True,
+            length=20,
+        ),
         default=MessageContentType.TEXT,
     )
     status: Mapped[MessageStatus] = mapped_column(
-        Enum(MessageStatus, native_enum=False, length=20),
+        Enum(
+            MessageStatus,
+            native_enum=False,
+            values_callable=_enum_values,
+            validate_strings=True,
+            length=20,
+        ),
         default=MessageStatus.COMPLETED,
         index=True,
     )

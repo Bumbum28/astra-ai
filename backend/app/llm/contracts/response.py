@@ -34,3 +34,5 @@ class LLMChunk(BaseModel):
     provider: str
     finish_reason: str | None = None
     provider_response_id: str | None = None
+    usage: LLMUsage | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)

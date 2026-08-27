@@ -5,6 +5,7 @@ import 'package:astra_ai/core/errors/app_exception.dart';
 import 'package:astra_ai/core/network/api_envelope.dart';
 import 'package:astra_ai/core/network/dio_exception_mapper.dart';
 import 'package:astra_ai/core/network/sse_decoder.dart';
+import 'package:astra_ai/features/chat/domain/entities/chat_execution_mode.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_message.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_page_data.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_stream_event.dart';
@@ -100,6 +101,7 @@ class ChatRemoteDataSource {
     required String conversationId,
     required String content,
     required String clientMessageId,
+    ChatExecutionMode executionMode = ChatExecutionMode.direct,
   }) async* {
     try {
       final response = await _dio.post<ResponseBody>(
@@ -107,6 +109,7 @@ class ChatRemoteDataSource {
         data: <String, Object?>{
           'content': content,
           'client_message_id': clientMessageId,
+          'execution_mode': executionMode.apiValue,
         },
         options: Options(
           responseType: ResponseType.stream,

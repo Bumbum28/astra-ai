@@ -1,5 +1,6 @@
 def load_all_models() -> None:
     """Import ORM modules so SQLAlchemy can resolve string relationships."""
+    from app.agents.model import AgentRun, AgentStep
     from app.domains.auth.model import RefreshSession
     from app.domains.characters.model import Character
     from app.domains.conversations.model import Conversation
@@ -10,6 +11,8 @@ def load_all_models() -> None:
     from app.domains.users.model import User
 
     _ = (
+        AgentRun,
+        AgentStep,
         RefreshSession,
         Character,
         Conversation,

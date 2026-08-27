@@ -1,5 +1,6 @@
 import 'package:astra_ai/features/chat/application/chat_controller.dart';
 import 'package:astra_ai/features/chat/data/chat_providers.dart';
+import 'package:astra_ai/features/chat/domain/entities/chat_execution_mode.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_message.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_page_data.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_stream_event.dart';
@@ -25,6 +26,21 @@ void main() {
     expect(state.messages.last.content, 'Chào bạn!');
     expect(state.messages.last.status, ChatMessageStatus.completed);
     expect(state.isSending, isFalse);
+  });
+
+  test('sends agent mode through the repository', () async {
+    final repository = _FakeChatRepository();
+    final container = ProviderContainer(
+      overrides: [chatRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    final provider = chatControllerProvider('conversation-1');
+
+    await container.read(provider.future);
+    container.read(provider.notifier).setExecutionMode(ChatExecutionMode.agent);
+    await container.read(provider.notifier).send('Tìm thông tin đã lưu');
+
+    expect(repository.lastExecutionMode, ChatExecutionMode.agent);
   });
 
   test(
@@ -53,6 +69,7 @@ class _FakeChatRepository implements ChatRepository {
 
   final bool completeStream;
   final now = DateTime.utc(2026, 7, 22);
+  ChatExecutionMode? lastExecutionMode;
 
   @override
   Future<ConversationPageData> listConversations({String? cursor}) async {
@@ -85,7 +102,9 @@ class _FakeChatRepository implements ChatRepository {
     required String conversationId,
     required String content,
     required String clientMessageId,
+    ChatExecutionMode executionMode = ChatExecutionMode.direct,
   }) async* {
+    lastExecutionMode = executionMode;
     final user = ChatMessage(
       id: 'user-1',
       conversationId: conversationId,

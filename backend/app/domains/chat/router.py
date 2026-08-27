@@ -6,8 +6,8 @@ from fastapi.responses import StreamingResponse
 
 from app.common.responses import ApiResponse
 from app.domains.auth.dependencies import get_current_user
-from app.domains.chat.dependencies import get_chat_application_service
-from app.domains.chat.service import ChatApplicationService
+from app.domains.chat.dependencies import get_chat_orchestrator
+from app.domains.chat.orchestrator import ChatOrchestrator
 from app.domains.messages.schemas import ChatExchangeResponse, MessageSendRequest
 from app.domains.users.schemas import UserResponse
 
@@ -23,8 +23,8 @@ async def send_message(
     request: MessageSendRequest,
     current_user: Annotated[UserResponse, Depends(get_current_user)],
     service: Annotated[
-        ChatApplicationService,
-        Depends(get_chat_application_service),
+        ChatOrchestrator,
+        Depends(get_chat_orchestrator),
     ],
 ) -> ApiResponse[ChatExchangeResponse]:
     return ApiResponse[ChatExchangeResponse].ok(
@@ -41,8 +41,8 @@ async def stream_message(
     request: MessageSendRequest,
     current_user: Annotated[UserResponse, Depends(get_current_user)],
     service: Annotated[
-        ChatApplicationService,
-        Depends(get_chat_application_service),
+        ChatOrchestrator,
+        Depends(get_chat_orchestrator),
     ],
 ) -> StreamingResponse:
     prepared = await service.start_stream(current_user.id, conversation_id, request)

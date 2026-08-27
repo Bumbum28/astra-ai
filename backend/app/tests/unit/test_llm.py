@@ -93,3 +93,43 @@ async def test_openai_adapter_maps_to_internal_contract() -> None:
     assert response.provider == "openai"
     assert response.usage is not None
     assert response.usage.total_tokens == 5
+
+
+def test_openai_gpt56_uses_reasoning_compatible_chat_parameters() -> None:
+    request = LLMRequest(
+        model="gpt-5.6-terra",
+        messages=[LLMMessage(role=LLMMessageRole.USER, content="hello")],
+        temperature=0.8,
+        max_tokens=2048,
+    )
+    kwargs = OpenAIProvider._completion_kwargs(
+        request,
+        model="gpt-5.6-terra",
+        messages=[],
+        stream=True,
+    )
+
+    assert kwargs["max_completion_tokens"] == 2048
+    assert "max_tokens" not in kwargs
+    assert "temperature" not in kwargs
+    assert kwargs["stream"] is True
+
+
+def test_openai_non_reasoning_model_preserves_sampling_parameters() -> None:
+    request = LLMRequest(
+        model="gpt-4.1-mini",
+        messages=[LLMMessage(role=LLMMessageRole.USER, content="hello")],
+        temperature=0.7,
+        max_tokens=1024,
+    )
+    kwargs = OpenAIProvider._completion_kwargs(
+        request,
+        model="gpt-4.1-mini",
+        messages=[],
+        stream=False,
+    )
+
+    assert kwargs["max_tokens"] == 1024
+    assert "max_completion_tokens" not in kwargs
+    assert kwargs["temperature"] == 0.7
+    assert kwargs["stream"] is False

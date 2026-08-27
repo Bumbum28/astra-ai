@@ -31,6 +31,8 @@ class SearchConversationTool(BaseTool):
                 content="No active conversation was supplied.",
             )
         query = str(arguments.get("query") or "").strip().casefold()
+        if not query:
+            raise ValueError("query is required")
         async with self._uow_factory() as uow:
             conversation = await uow.conversations.get_owned(
                 context.conversation_id, context.user_id
