@@ -7,24 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class PersonaCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    description: str | None = Field(default=None, max_length=8000)
-    pronouns: str | None = Field(default=None, max_length=120)
-    background: str | None = Field(default=None, max_length=12000)
-    traits: str | None = Field(default=None, max_length=8000)
-    writing_style: str | None = Field(default=None, max_length=8000)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    description: str | None = Field(default=None, max_length=12000)
+    instructions: str | None = Field(default=None, max_length=12000)
+    is_default: bool = False
+    attributes: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("name")
-    @classmethod
-    def normalize_name(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("Persona name cannot be blank.")
-        return normalized
-
-    @field_validator(
-        "description", "pronouns", "background", "traits", "writing_style"
-    )
+    @field_validator("name", "description", "instructions")
     @classmethod
     def normalize_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -35,15 +23,12 @@ class PersonaCreateRequest(BaseModel):
 
 class PersonaUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    description: str | None = Field(default=None, max_length=8000)
-    pronouns: str | None = Field(default=None, max_length=120)
-    background: str | None = Field(default=None, max_length=12000)
-    traits: str | None = Field(default=None, max_length=8000)
-    writing_style: str | None = Field(default=None, max_length=8000)
+    description: str | None = Field(default=None, max_length=12000)
+    instructions: str | None = Field(default=None, max_length=12000)
+    is_default: bool | None = None
+    attributes: dict[str, Any] | None = None
 
-    @field_validator(
-        "name", "description", "pronouns", "background", "traits", "writing_style"
-    )
+    @field_validator("name", "description", "instructions")
     @classmethod
     def normalize_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -53,23 +38,21 @@ class PersonaUpdateRequest(BaseModel):
 
 
 class PersonaResponse(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(from_attributes=True, frozen=True)
 
     id: UUID
-    current_version: int
     name: str
     description: str | None
-    pronouns: str | None
-    background: str | None
-    traits: str | None
-    writing_style: str | None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    instructions: str | None
+    is_default: bool
+    attributes: dict[str, Any] = Field(
+        default_factory=dict, validation_alias="persona_attributes"
+    )
     created_at: datetime
     updated_at: datetime
 
 
-class PersonaPageResponse(BaseModel):
+class PersonaListResponse(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     items: list[PersonaResponse]
-    next_cursor: str | None = None

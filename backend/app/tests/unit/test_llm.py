@@ -60,88 +60,36 @@ async def test_chat_service_uses_provider_abstraction() -> None:
     assert response.provider == "openai"
 
 
-class FakeOpenAIResponses:
-    def __init__(self) -> None:
-        self.last_kwargs: dict[str, Any] = {}
-
-    async def create(self, **kwargs: Any) -> Any:
-        self.last_kwargs = kwargs
+class FakeOpenAICompletions:
+    async def create(self, **_: Any) -> Any:
         return SimpleNamespace(
             id="response-1",
-            model="gpt-5.6-terra",
-            output_text="adapter response",
-            status="completed",
-            usage=SimpleNamespace(input_tokens=2, output_tokens=3, total_tokens=5),
+            model="fake-openai-model",
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content="adapter response"),
+                    finish_reason="stop",
+                )
+            ],
+            usage=SimpleNamespace(prompt_tokens=2, completion_tokens=3, total_tokens=5),
         )
 
 
 class FakeOpenAIClient:
     def __init__(self) -> None:
-        self.responses = FakeOpenAIResponses()
+        self.chat = SimpleNamespace(completions=FakeOpenAICompletions())
 
 
 @pytest.mark.asyncio
-async def test_openai_adapter_maps_responses_api_to_internal_contract() -> None:
-    client = FakeOpenAIClient()
+async def test_openai_adapter_maps_to_internal_contract() -> None:
     provider = OpenAIProvider(
         AppConfig(),
-        client=cast(AsyncOpenAI, client),
+        client=cast(AsyncOpenAI, FakeOpenAIClient()),
     )
     response = await provider.chat(
-        LLMRequest(
-            messages=[LLMMessage(role=LLMMessageRole.USER, content="hello")],
-            model="gpt-5.6-terra",
-            reasoning_effort="medium",
-        )
+        LLMRequest(messages=[LLMMessage(role=LLMMessageRole.USER, content="hello")])
     )
     assert response.content == "adapter response"
     assert response.provider == "openai"
     assert response.usage is not None
     assert response.usage.total_tokens == 5
-    assert response.metadata["api"] == "responses"
-    assert client.responses.last_kwargs["reasoning"] == {"effort": "medium"}
-    assert client.responses.last_kwargs["store"] is False
-
-
-@pytest.mark.asyncio
-async def test_openai_adapter_maps_structured_output_schema() -> None:
-    client = FakeOpenAIClient()
-    provider = OpenAIProvider(
-        AppConfig(),
-        client=cast(AsyncOpenAI, client),
-    )
-    schema = {
-        "type": "object",
-        "properties": {"approved": {"type": "boolean"}},
-        "required": ["approved"],
-        "additionalProperties": False,
-    }
-
-    await provider.chat(
-        LLMRequest(
-            messages=[LLMMessage(role=LLMMessageRole.USER, content="review")],
-            response_schema_name="critic",
-            response_schema=schema,
-        )
-    )
-
-    assert client.responses.last_kwargs["text"] == {
-        "format": {
-            "type": "json_schema",
-            "name": "critic",
-            "strict": True,
-            "schema": schema,
-        }
-    }
-
-
-def test_factory_reuses_provider_instance() -> None:
-    registry = ProviderRegistry()
-    registry.register(LLMProviderName.OPENAI, FakeProvider)
-    factory = LLMFactory(AppConfig(), registry)
-
-    first = factory.get_provider(LLMProviderName.OPENAI)
-    second = factory.get_provider(LLMProviderName.OPENAI)
-
-    assert first is second
-

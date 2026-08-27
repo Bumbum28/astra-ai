@@ -1,26 +1,22 @@
 def load_all_models() -> None:
     """Import ORM modules so SQLAlchemy can resolve string relationships."""
     from app.domains.auth.model import RefreshSession
-    from app.domains.characters.model import Character, CharacterVersion
+    from app.domains.characters.model import Character
     from app.domains.conversations.model import Conversation
+    from app.domains.knowledge.model import KnowledgeChunk, KnowledgeSource
+    from app.domains.memories.model import Memory
     from app.domains.messages.model import Message
-    from app.domains.memories.model import ConversationSummary, Memory, MemoryTask
-    from app.domains.personas.model import Persona, PersonaVersion
-    from app.domains.relationships.model import Relationship, RelationshipEvent
+    from app.domains.personas.model import Persona
     from app.domains.users.model import User
 
     _ = (
         RefreshSession,
         Character,
-        CharacterVersion,
         Conversation,
-        Message,
+        KnowledgeChunk,
+        KnowledgeSource,
         Memory,
-        ConversationSummary,
-        MemoryTask,
+        Message,
         Persona,
-        PersonaVersion,
-        Relationship,
-        RelationshipEvent,
         User,
     )

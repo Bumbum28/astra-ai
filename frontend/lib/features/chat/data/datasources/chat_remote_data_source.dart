@@ -10,7 +10,6 @@ import 'package:astra_ai/features/chat/domain/entities/chat_page_data.dart';
 import 'package:astra_ai/features/chat/domain/entities/chat_stream_event.dart';
 import 'package:astra_ai/features/chat/domain/entities/conversation.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChatRemoteDataSource {
   const ChatRemoteDataSource(this._dio, this._config);
@@ -102,15 +101,6 @@ class ChatRemoteDataSource {
     required String content,
     required String clientMessageId,
   }) async* {
-    if (kIsWeb) {
-      yield* _sendMessageWithoutStreaming(
-        conversationId: conversationId,
-        content: content,
-        clientMessageId: clientMessageId,
-      );
-      return;
-    }
-
     try {
       final response = await _dio.post<ResponseBody>(
         _config.endpoint('conversations/$conversationId/messages/stream'),
@@ -134,40 +124,6 @@ class ChatRemoteDataSource {
           yield _mapFrame(frame);
         }
       }
-    } on DioException catch (error) {
-      throw DioExceptionMapper.map(error);
-    } on FormatException catch (error) {
-      throw _invalidResponse(error.message);
-    } on TypeError catch (error) {
-      throw _invalidResponse(error.toString());
-    }
-  }
-
-  Stream<ChatStreamEvent> _sendMessageWithoutStreaming({
-    required String conversationId,
-    required String content,
-    required String clientMessageId,
-  }) async* {
-    try {
-      final response = await _dio.post<Object?>(
-        _config.endpoint('conversations/$conversationId/messages'),
-        data: <String, Object?>{
-          'content': content,
-          'client_message_id': clientMessageId,
-        },
-      );
-      final data = ApiEnvelope.requireDataMap(response.data);
-      final userMessage = ChatMessage.fromJson(_map(data['user_message']));
-      final assistantMessage = ChatMessage.fromJson(
-        _map(data['assistant_message']),
-      );
-
-      yield ChatStreamStartedEvent(
-        userMessage: userMessage,
-        assistantMessage: assistantMessage,
-        reused: data['reused'] == true,
-      );
-      yield ChatStreamCompletedEvent(assistantMessage);
     } on DioException catch (error) {
       throw DioExceptionMapper.map(error);
     } on FormatException catch (error) {

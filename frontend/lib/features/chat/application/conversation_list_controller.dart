@@ -44,7 +44,7 @@ class ConversationListController extends AsyncNotifier<ConversationListState> {
     final conversation = await ref
         .read(chatRepositoryProvider)
         .createConversation(characterId: characterId, personaId: personaId);
-    final current = state.value;
+    final current = state.asData?.value;
     if (current != null) {
       state = AsyncData(
         current.copyWith(items: <Conversation>[conversation, ...current.items]),
@@ -57,7 +57,7 @@ class ConversationListController extends AsyncNotifier<ConversationListState> {
 
   Future<void> archiveConversation(String conversationId) async {
     await ref.read(chatRepositoryProvider).archiveConversation(conversationId);
-    final current = state.value;
+    final current = state.asData?.value;
     if (current == null) {
       return;
     }
@@ -71,7 +71,7 @@ class ConversationListController extends AsyncNotifier<ConversationListState> {
   }
 
   Future<void> loadMore() async {
-    final current = state.value;
+    final current = state.asData?.value;
     if (current == null ||
         current.isLoadingMore ||
         current.nextCursor == null) {

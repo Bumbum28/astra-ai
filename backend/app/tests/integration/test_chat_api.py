@@ -89,7 +89,7 @@ async def test_conversation_history_and_streaming_chat() -> None:
             assert messages.status_code == 200
             items = messages.json()["data"]["items"]
             assert [item["role"] for item in items] == ["user", "assistant"]
-            assert items[-1]["content"] == "Phản hồi integration."
+            assert items[-1]["content"] == "Phản hồi stream."
 
             conversations = await client.get(
                 "/api/v1/conversations",
